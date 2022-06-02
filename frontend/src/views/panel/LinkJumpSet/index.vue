@@ -35,18 +35,7 @@
         </el-col>
         <el-col :span="16" class="preview-show">
           <el-row v-if="linkJumpInfo">
-            <el-row style="margin-top: 10px">
-              <el-col :span="4" style="margin-left: 20px">
-                {{ $t('panel.open_model') }}：
-              </el-col>
-              <el-col :span="10">
-                <el-radio-group v-model="linkJumpInfo.jumpType" size="mini">
-                  <el-radio label="_self">{{ $t('panel.now_window') }}</el-radio>
-                  <el-radio label="_blank">{{ $t('panel.new_window') }}</el-radio>
-                </el-radio-group>
-              </el-col>
-            </el-row>
-            <el-row style="margin-top: 10px">
+            <el-row style="margin-top: 10px;height: 30px;">
               <el-col :span="4" style="margin-left: 20px">
                 {{ $t('panel.link_type') }}：
               </el-col>
@@ -63,10 +52,27 @@
                   :disable-branch-nodes="true"
                   :normalizer="normalizer"
                   :placeholder="$t('panel.select_jump_panel')"
+                  :no-children-text="$t('commons.treeselect.no_children_text')"
+                  :no-options-text="$t('commons.treeselect.no_options_text')"
+                  :no-results-text="$t('commons.treeselect.no_results_text')"
                   style="margin-right: 10px"
                   @select="panelNodeClick"
                   @input="inputVal"
                 />
+              </el-col>
+            </el-row>
+            <el-row style="margin-top: 10px;height: 30px">
+              <el-col :span="4" style="margin-left: 20px">
+                {{ $t('panel.open_model') }}：
+              </el-col>
+              <el-col :span="10">
+                <el-radio-group v-model="linkJumpInfo.jumpType" size="mini">
+                  <el-radio label="_self">{{ $t('panel.now_window') }}</el-radio>
+                  <el-radio label="_blank">{{ $t('panel.new_window') }}</el-radio>
+                </el-radio-group>
+              </el-col>
+              <el-col v-if="linkJumpInfo.linkType==='outer'" :span="9">
+                <el-checkbox v-model="linkJumpInfo.attachParams">附加点击参数</el-checkbox>
               </el-col>
             </el-row>
             <el-row v-if="linkJumpInfo.linkType==='inner'" style="margin-top: 5px;" class="top_border">
@@ -82,24 +88,27 @@
                 <el-row v-for="(targetViewInfo,index) in linkJumpInfo.targetViewInfoList" :key="index">
                   <el-col :span="11">
                     <div class="select-filed">
-                      <el-select v-model="targetViewInfo.targetViewId" style="width: 100%" size="mini" :placeholder="$t('panel.please_select')" @change="viewInfoOnChange(targetViewInfo)">
+                      <el-select v-model="targetViewInfo.targetViewId" style="width: 100%" size="mini" :placeholder="$t('fu.search_bar.please_select')" @change="viewInfoOnChange(targetViewInfo)">
                         <el-option
                           v-for="item in currentLinkPanelViewArray"
                           :key="item.id"
                           :label="item.name"
                           :value="item.id"
                         >
-                          <span style="float: left">
+                          <span v-if="item.isPlugin" style="float: left">
+                            <svg-icon :icon-class="item.type !== 'buddle-map' ? ('/api/pluginCommon/staticInfo/' + item.type + '/svg') : item.type" style="width: 14px;height: 14px" />
+                          </span>
+                          <span v-else style="float: left">
                             <svg-icon :icon-class="item.type" style="width: 14px;height: 14px" />
                           </span>
-                          <span style="float: left; font-size: 12px"> {{ item.name }}</span>
+                          <span style="float: left; font-size: 12px">{{ item.name }}</span>
                         </el-option>
                       </el-select>
                     </div>
                   </el-col>
                   <el-col :span="11">
                     <div class="select-filed">
-                      <el-select v-model="targetViewInfo.targetFieldId" style="width: 100%" size="mini" :placeholder="$t('panel.please_select')">
+                      <el-select v-model="targetViewInfo.targetFieldId" style="width: 100%" size="mini" :placeholder="$t('fu.search_bar.please_select')">
                         <el-option
                           v-for="viewField in viewIdFieldArrayMap[targetViewInfo.targetViewId]"
                           :key="viewField.id"
@@ -109,7 +118,7 @@
                           <span style="float: left">
                             <svg-icon v-if="viewField.deType === 0" icon-class="field_text" class="field-icon-text" />
                             <svg-icon v-if="viewField.deType === 1" icon-class="field_time" class="field-icon-time" />
-                            <svg-icon v-if="viewField.deType === 2 || viewField.value === 3" icon-class="field_value" class="field-icon-value" />
+                            <svg-icon v-if="viewField.deType === 2 || viewField.deType === 3" icon-class="field_value" class="field-icon-value" />
                             <svg-icon v-if="viewField.deType === 5" icon-class="field_location" class="field-icon-location" />
                           </span>
                           <span style="float: left;font-size: 12px">{{ viewField.name }}</span>
@@ -160,6 +169,7 @@ import { groupTree } from '@/api/panel/panel'
 import { detailList } from '@/api/panel/panelView'
 import { mapState } from 'vuex'
 import { deepCopy } from '@/components/canvas/utils/utils'
+import { checkAddHttp } from '@/utils/urlUtils'
 
 export default {
   components: { },
@@ -265,6 +275,7 @@ export default {
       this.$emit('closeJumpSetDialog')
     },
     save() {
+      this.linkJumpInfo.content = checkAddHttp(this.linkJumpInfo.content)
       updateJumpSet(this.linkJump).then(rsp => {
         this.$message({
           message: '保存成功',
@@ -289,6 +300,9 @@ export default {
       if (!this.linkJumpInfo.content) {
         this.linkJumpInfo.content = 'http://'
       }
+      if (!this.linkJumpInfo.attachParams) {
+        this.linkJumpInfo.attachParams = false
+      }
       if (this.linkJumpInfo.targetPanelId) {
         this.getPanelViewList(this.linkJumpInfo.targetPanelId)
       }
@@ -306,7 +320,6 @@ export default {
       })
     },
     panelNodeClick(data, node) {
-      // console.log('panelNodeClick:' + JSON.stringify(data))
       this.linkJumpInfo.targetViewInfoList = []
       this.getPanelViewList(data.id)
     },
@@ -336,6 +349,9 @@ export default {
       targetViewInfo.targetFieldId = null
     },
     sourceFieldCheckedChange(data) {
+      if (data.checked) {
+        this.linkJump.checked = true
+      }
       this.$nextTick(() => {
         this.$refs.linkJumpInfoTree.setCurrentKey(data.sourceFieldId)
         this.nodeClick(data)

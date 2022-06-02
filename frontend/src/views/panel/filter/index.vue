@@ -30,7 +30,7 @@
 
 <script>
 import { ApplicationContext } from '@/utils/ApplicationContext'
-import { deepCopy } from '@/components/canvas/utils/utils'
+import { deepCopy, matrixBaseChange } from '@/components/canvas/utils/utils'
 import eventBus from '@/components/canvas/utils/eventBus'
 import { mapState } from 'vuex'
 export default {
@@ -55,7 +55,8 @@ export default {
         '文本过滤组件': [
           'textSelectWidget',
           'textSelectGridWidget',
-          'textInputWidget'
+          'textInputWidget',
+          'textSelectTreeWidget'
         ],
         '数字过滤组件': [
           'numberSelectWidget',
@@ -84,7 +85,6 @@ export default {
         return result
       })
     }
-    // console.log('this.widgetSubjects=>' + JSON.stringify(this.widgetSubjects))
   },
 
   methods: {
@@ -272,7 +272,8 @@ export default {
     white-space: pre;
     text-overflow: ellipsis;
     position: absolute;
-    inset: 0px 0px 0px 40px;
+    /* inset: 0px 0px 0px 40px; */
+    margin-left: 40px;
     box-sizing: border-box;
     overflow: hidden;
     overflow-x: hidden;

@@ -13,12 +13,12 @@
       <el-form-item :label="$t('commons.email')" prop="email">
         <el-input v-model="form.email" />
       </el-form-item>
-      <el-form-item v-if="formType !== 'modify'" :label="$t('commons.password')" prop="password">
+      <!-- <el-form-item v-if="formType !== 'modify'" :label="$t('commons.password')" prop="password">
         <el-input v-model="form.password" autocomplete="off" show-password />
       </el-form-item>
       <el-form-item v-if="formType !== 'modify'" :label="$t('commons.confirmPassword')" prop="confirmPassword">
         <el-input v-model="form.confirmPassword" autocomplete="off" show-password />
-      </el-form-item>
+      </el-form-item> -->
 
       <el-form-item :label="$t('commons.gender')" prop="gender">
         <el-radio-group v-model="form.gender" style="width: 178px">
@@ -40,6 +40,9 @@
           :load-options="loadDepts"
           :auto-load-root-options="false"
           :placeholder="$t('user.choose_org')"
+          :no-children-text="$t('commons.treeselect.no_children_text')"
+          :no-options-text="$t('commons.treeselect.no_options_text')"
+          :no-results-text="$t('commons.treeselect.no_results_text')"
           @open="filterData"
         />
       </el-form-item>
@@ -66,6 +69,19 @@
         <el-button type="primary" @click="save">{{ $t('commons.confirm') }}</el-button>
         <el-button @click="reset">{{ $t('commons.reset') }}</el-button>
       </el-form-item>
+
+      <el-form-item v-if="formType === 'add'">
+        <!-- <el-link class="pwd-tips" type="danger" :underline="false">{{ $t('commons.default_pwd') + '：' + defaultPWD }}</el-link> -->
+        <el-button class="pwd-tips" type="text">{{ $t('commons.default_pwd') + '：' + defaultPWD }}</el-button>
+        <el-button
+          v-clipboard:copy="defaultPWD"
+          v-clipboard:success="onCopy"
+          v-clipboard:error="onError"
+          type="text"
+        >
+          {{ $t('commons.copy') }}
+        </el-button>
+      </el-form-item>
     </el-form>
 
   </layout-content>
@@ -76,7 +92,7 @@ import LayoutContent from '@/components/business/LayoutContent'
 import { PHONE_REGEX } from '@/utils/validate'
 import { getDeptTree, treeByDeptId } from '@/api/system/dept'
 import { addUser, editUser, allRoles } from '@/api/system/user'
-import { pluginLoaded } from '@/api/user'
+import { pluginLoaded, defaultPwd } from '@/api/user'
 export default {
 
   components: { LayoutContent },
@@ -157,7 +173,8 @@ export default {
       roleDatas: [],
       userRoles: [],
       formType: 'add',
-      isPluginLoaded: false
+      isPluginLoaded: false,
+      defaultPWD: 'DataEase123..'
     }
   },
 
@@ -179,6 +196,11 @@ export default {
   beforeCreate() {
     pluginLoaded().then(res => {
       this.isPluginLoaded = res.success && res.data
+    })
+    defaultPwd().then(res => {
+      if (res && res.data) {
+        this.defaultPWD = res.data
+      }
     })
   },
   methods: {
@@ -205,7 +227,6 @@ export default {
       this.depts = null
       this.formType = 'add'
       this.form = Object.assign({}, this.defaultForm)
-      // console.log(this.form)
     },
     edit(row) {
       this.depts = null
@@ -317,7 +338,15 @@ export default {
         return node
       })
       this.depts = results
-    }
+    },
+    onCopy(e) {
+      this.$success(this.$t('commons.copy_success'))
+    },
+    onError(e) {}
   }
 }
 </script>
+
+<style lang="scss" scoped>
+
+</style>

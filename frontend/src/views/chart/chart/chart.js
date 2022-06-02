@@ -2,22 +2,24 @@ export const DEFAULT_COLOR_CASE = {
   value: 'default',
   colors: ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'],
   alpha: 100,
-  tableHeaderBgColor: '#4e81bb',
-  tableItemBgColor: '#c6d9f0',
+  tableHeaderBgColor: '#e1eaff',
+  tableItemBgColor: '#ffffff',
   tableFontColor: '#000000',
   tableStripe: true,
   dimensionColor: '#000000',
-  quotaColor: '#000000'
+  quotaColor: '#000000',
+  tableBorderColor: '#cfdaf4',
+  seriesColors: [] // 格式：{"name":"s1","color":"","isCustom":false}
 }
 export const DEFAULT_SIZE = {
   barDefault: true,
   barWidth: 40,
   barGap: 0.4,
-  lineWidth: 1,
+  lineWidth: 2,
   lineType: 'solid',
   lineSymbol: 'circle',
   lineSymbolSize: 4,
-  lineSmooth: false,
+  lineSmooth: true,
   lineArea: false,
   pieInnerRadius: 0,
   pieOuterRadius: 80,
@@ -31,6 +33,10 @@ export const DEFAULT_SIZE = {
   tableTitleHeight: 36,
   tableItemHeight: 36,
   tablePageSize: '20',
+  tableColumnMode: 'custom',
+  tableColumnWidth: 100,
+  tableHeaderAlign: 'left',
+  tableItemAlign: 'right',
   gaugeMin: 0,
   gaugeMax: 100,
   gaugeStartAngle: 225,
@@ -50,7 +56,10 @@ export const DEFAULT_SIZE = {
   liquidOutlineDistance: 8,
   liquidWaveLength: 128,
   liquidWaveCount: 3,
-  liquidShape: 'circle'
+  liquidShape: 'circle',
+  tablePageMode: 'page',
+  symbolOpacity: 0.7,
+  symbolStrokeWidth: 2
 }
 export const DEFAULT_LABEL = {
   show: false,
@@ -72,6 +81,38 @@ export const DEFAULT_TOOLTIP = {
     color: '#909399'
   },
   formatter: ''
+}
+export const DEFAULT_TOTAL = {
+  row: {
+    showGrandTotals: true,
+    showSubTotals: true,
+    reverseLayout: false,
+    reverseSubLayout: false,
+    label: '总计',
+    subLabel: '小计',
+    subTotalsDimensions: [],
+    calcTotals: {
+      aggregation: 'SUM'
+    },
+    calcSubTotals: {
+      aggregation: 'SUM'
+    }
+  },
+  col: {
+    showGrandTotals: true,
+    showSubTotals: true,
+    reverseLayout: false,
+    reverseSubLayout: false,
+    label: '总计',
+    subLabel: '小计',
+    subTotalsDimensions: [],
+    calcTotals: {
+      aggregation: 'SUM'
+    },
+    calcSubTotals: {
+      aggregation: 'SUM'
+    }
+  }
 }
 export const DEFAULT_TITLE_STYLE = {
   show: true,
@@ -188,8 +229,8 @@ export const DEFAULT_YAXIS_EXT_STYLE = {
 }
 export const DEFAULT_BACKGROUND_COLOR = {
   color: '#ffffff',
-  alpha: 100,
-  borderRadius: 5
+  alpha: 0,
+  borderRadius: 0
 }
 export const DEFAULT_SPLIT = {
   name: {
@@ -234,6 +275,14 @@ export const DEFAULT_SPLIT = {
   splitArea: {
     show: true
   }
+}
+export const DEFAULT_FUNCTION_CFG = {
+  sliderShow: false,
+  sliderRange: [0, 10]
+}
+export const DEFAULT_THRESHOLD = {
+  gaugeThreshold: '',
+  labelThreshold: []
 }
 // chart config
 export const BASE_BAR = {
@@ -628,8 +677,7 @@ export const BASE_CHART_STRING = {
     legend: DEFAULT_LEGEND_STYLE,
     xAxis: DEFAULT_XAXIS_STYLE,
     yAxis: DEFAULT_YAXIS_STYLE,
-    yAxisExt: DEFAULT_YAXIS_EXT_STYLE,
-    background: DEFAULT_BACKGROUND_COLOR
+    yAxisExt: DEFAULT_YAXIS_EXT_STYLE
   }),
   customFilter: '[]'
 }
@@ -652,8 +700,7 @@ export const BASE_CHART = {
     legend: DEFAULT_LEGEND_STYLE,
     xAxis: DEFAULT_XAXIS_STYLE,
     yAxis: DEFAULT_YAXIS_STYLE,
-    yAxisExt: DEFAULT_YAXIS_EXT_STYLE,
-    background: DEFAULT_BACKGROUND_COLOR
+    yAxisExt: DEFAULT_YAXIS_EXT_STYLE
   },
   customFilter: []
 }

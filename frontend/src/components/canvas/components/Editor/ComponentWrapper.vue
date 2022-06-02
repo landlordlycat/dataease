@@ -5,29 +5,42 @@
     @click="handleClick"
     @mousedown="elementMouseDown"
   >
-    <edit-bar v-if="editBarShow" :element="config" @showViewDetails="showViewDetails" />
-    <de-out-widget
-      v-if="config.type==='custom'"
-      :id="'component' + config.id"
-      class="component-custom"
-      :style="getComponentStyleDefault(config.style)"
-      :out-style="config.style"
-      :element="config"
-      :in-screen="inScreen"
-    />
-    <component
-      :is="config.component"
-      v-else
-      ref="wrapperChild"
-      :out-style="config.style"
-      :style="getComponentStyleDefault(config.style)"
-      :prop-value="config.propValue"
-      :is-edit="false"
-      :element="config"
-      :search-count="searchCount"
-      :h="config.style.height"
-      :edit-mode="'preview'"
-    />
+    <div :style="commonStyle" class="main_view">
+      <edit-bar v-if="componentActiveFlag" :element="config" @showViewDetails="showViewDetails" />
+      <close-bar v-if="previewVisible" @closePreview="closePreview" />
+      <de-out-widget
+        v-if="config.type==='custom'"
+        :id="'component' + config.id"
+        class="component-custom"
+        :style="getComponentStyleDefault(config.style)"
+        style="overflow: hidden"
+        :out-style="config.style"
+        :element="config"
+        :in-screen="inScreen"
+        :edit-mode="'preview'"
+        :h="config.style.height"
+      />
+      <component
+        :is="config.component"
+        v-else
+        ref="wrapperChild"
+        :out-style="config.style"
+        :style="getComponentStyleDefault(config.style)"
+        :prop-value="config.propValue"
+        :is-edit="false"
+        :in-screen="inScreen"
+        :active="componentActiveFlag"
+        :element="config"
+        :search-count="searchCount"
+        :h="config.style.height"
+        :edit-mode="'preview'"
+        :filters="filters"
+        :terminal="terminal"
+        :screen-shot="screenShot"
+        :canvas-style-data="canvasStyleData"
+        :show-position="showPosition"
+      />
+    </div>
   </div>
 </template>
 
@@ -39,9 +52,11 @@ import { mapState } from 'vuex'
 import DeOutWidget from '@/components/dataease/DeOutWidget'
 import EditBar from '@/components/canvas/components/Editor/EditBar'
 import MobileCheckBar from '@/components/canvas/components/Editor/MobileCheckBar'
+import CloseBar from '@/components/canvas/components/Editor/CloseBar'
+import { hexColorToRGBA } from '@/views/chart/chart/util'
 
 export default {
-  components: { MobileCheckBar, DeOutWidget, EditBar },
+  components: { CloseBar, MobileCheckBar, DeOutWidget, EditBar },
   mixins: [mixins],
   props: {
     config: {
@@ -63,18 +78,71 @@ export default {
       type: Boolean,
       required: false,
       default: true
+    },
+    terminal: {
+      type: String,
+      default: 'pc'
+    },
+    filters: {
+      type: Array,
+      default: () => []
+    },
+    screenShot: {
+      type: Boolean,
+      default: false
+    },
+    canvasStyleData: {
+      type: Object,
+      required: false,
+      default: function() {
+        return {}
+      }
+    },
+    showPosition: {
+      type: String,
+      required: false,
+      default: 'NotProvided'
+    }
+  },
+  data() {
+    return {
+      previewVisible: false
     }
   },
   computed: {
-    editBarShow() {
-      return this.curComponent && this.config === this.curComponent
+    commonStyle() {
+      const style = {
+        width: '100%',
+        height: '100%'
+      }
+      if (this.config.commonBackground) {
+        style['padding'] = (this.config.commonBackground.innerPadding || 0) + 'px'
+        style['border-radius'] = (this.config.commonBackground.borderRadius || 0) + 'px'
+        if (this.config.commonBackground.enable) {
+          if (this.config.commonBackground.backgroundType === 'innerImage' && this.config.commonBackground.innerImage) {
+            let innerImage = this.config.commonBackground.innerImage
+            if (this.screenShot) {
+              innerImage = innerImage.replace('svg', 'png')
+            }
+            style['background'] = `url(${innerImage}) no-repeat`
+          } else if (this.config.commonBackground.backgroundType === 'outerImage' && this.config.commonBackground.outerImage) {
+            style['background'] = `url(${this.config.commonBackground.outerImage}) no-repeat`
+          } else if (this.config.commonBackground.backgroundType === 'color') {
+            style['background-color'] = hexColorToRGBA(this.config.commonBackground.color, this.config.commonBackground.alpha)
+          }
+        }
+        style['overflow'] = 'hidden'
+      }
+      return style
+    },
+    componentActiveFlag() {
+      return (this.curComponent && this.config === this.curComponent) && !this.previewVisible
     },
     curGap() {
-      return this.config.auxiliaryMatrix ? this.componentGap : 0
+      return (this.canvasStyleData.panel.gap === 'yes' && this.config.auxiliaryMatrix) ? this.componentGap : 0
     },
     ...mapState([
       'mobileLayoutStatus',
-      'canvasStyleData',
       'curComponent',
       'componentGap'
     ])
@@ -140,9 +208,11 @@ export default {
 
     handleClick() {
       const events = this.config.events
-      Object.keys(events).forEach(event => {
-        this[event](events[event])
-      })
+      if (events) {
+        Object.keys(events).forEach(event => {
+          this[event](events[event])
+        })
+      }
     },
     elementMouseDown(e) {
       // private 设置当前组件数据及状态
@@ -156,6 +226,9 @@ export default {
     },
     showViewDetails() {
       this.$refs.wrapperChild.openChartDetailsDialog()
+    },
+    closePreview() {
+      this.previewVisible = false
     }
   }
 }
@@ -167,7 +240,7 @@ export default {
   }
 
   .component:hover {
-    box-shadow: 0px 0px 7px #0a7be0;
+    box-shadow: 0px 0px 3px #0a7be0;
   }
 
   .gap_class {
@@ -178,5 +251,8 @@ export default {
     outline: none;
     width: 100% !important;
     height: 100%;
+  }
+  .main_view{
+    background-size: 100% 100%!important;
   }
 </style>

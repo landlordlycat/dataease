@@ -9,7 +9,9 @@
         [classNameResizable]: resizable,
         [classNameRotating]: rotating,
         [classNameRotatable]: rotatable,
+        [classNameActive]: enabled ,
         ['linkageSetting']:linkageActive,
+        ['batchSetting']:batchOptActive,
         ['positionChange']:!(dragging || resizing||rotating)
       },
       className
@@ -22,14 +24,14 @@
     <div
       :class="[
         {
-          [classNameActive]: enabled ,
+          ['de-drag-active-inner']:enabled,
           [classNameMouseOn]: mouseOn || active
         },
         className
       ]"
       :style="mainSlotStyle"
     >
-      <edit-bar v-if="editBarShow" style="transform: translateZ(10px)" :active-model="'edit'" :element="element" @showViewDetails="showViewDetails" @amRemoveItem="amRemoveItem" @amAddItem="amAddItem" @resizeView="resizeView" @linkJumpSet="linkJumpSet" />
+      <edit-bar v-if="editBarShow" style="transform: translateZ(10px)" :active-model="'edit'" :element="element" @showViewDetails="showViewDetails" @amRemoveItem="amRemoveItem" @amAddItem="amAddItem" @resizeView="resizeView" @linkJumpSet="linkJumpSet" @boardSet="boardSet" />
       <mobile-check-bar v-if="mobileCheckBarShow" :element="element" @amRemoveItem="amRemoveItem" />
       <div v-if="resizing" style="transform: translateZ(11px);position: absolute; z-index: 3" :style="resizeShadowStyle" />
       <div
@@ -42,7 +44,9 @@
       >
         <slot :name="handlei" />
       </div>
-      <slot />
+      <div :style="mainSlotStyleInner" class="main-background">
+        <slot />
+      </div>
     </div>
   </div>
 </template>
@@ -58,6 +62,7 @@ import eventBus from '@/components/canvas/utils/eventBus'
 import { mapState } from 'vuex'
 import EditBar from '@/components/canvas/components/Editor/EditBar'
 import MobileCheckBar from '@/components/canvas/components/Editor/MobileCheckBar'
+import { hexColorToRGBA } from '@/views/chart/chart/util'
 
 export default {
   replace: true,
@@ -328,6 +333,11 @@ export default {
     linkageActive: {
       type: Boolean,
       default: false
+    },
+    // batch operation
+    batchOptActive: {
+      type: Boolean,
+      default: false
     }
   },
   data: function() {
@@ -369,14 +379,16 @@ export default {
       // 鼠标移入事件
       mouseOn: false,
       // 是否移动 （如果没有移动 不需要记录snapshot）
-      hasMove: false
+      hasMove: false,
+      // 上次的鼠标指针纵向位置，用来判断指针是上移还是下移
+      latestMoveY: 0
     }
   },
   computed: {
     // 编辑组件显示
     editBarShow() {
-      // 编辑组件显示条件：1.当前组件存在 2.组件是激活状态或者当前在联动设置撞他 3.当前不在移动端画布编辑状态
-      return this.curComponent && (this.active || this.linkageSettingStatus) && !this.mobileLayoutStatus
+      // 编辑组件显示条件：1.当前组件存在 2.组件是激活状态或者当前在联动设置状态 3.当前不在移动端画布编辑状态 4.或者批量操作状态
+      return (this.curComponent && (this.active || this.linkageSettingStatus) && !this.mobileLayoutStatus) || this.batchOptStatus
     },
     // 移动端编辑组件选择按钮显示
     mobileCheckBarShow() {
@@ -530,11 +542,42 @@ export default {
       }
       return style
     },
+    mainSlotStyleInner() {
+      const style = {}
+      if (this.element.commonBackground) {
+        style['padding'] = (this.element.commonBackground.innerPadding || 0) + 'px'
+        style['border-radius'] = (this.element.commonBackground.borderRadius || 0) + 'px'
+        if (this.element.commonBackground.enable) {
+          if (this.element.commonBackground.backgroundType === 'innerImage' && this.element.commonBackground.innerImage) {
+            style['background'] = `url(${this.element.commonBackground.innerImage}) no-repeat`
+          } else if (this.element.commonBackground.backgroundType === 'outerImage' && this.element.commonBackground.outerImage) {
+            style['background'] = `url(${this.element.commonBackground.outerImage}) no-repeat`
+          } else if (this.element.commonBackground.backgroundType === 'color') {
+            style['background-color'] = hexColorToRGBA(this.element.commonBackground.color, this.element.commonBackground.alpha)
+          }
+        }
+      }
+      return style
+    },
     curComponent() {
       return this.$store.state.curComponent
     },
     curGap() {
-      return this.element.auxiliaryMatrix && this.element.type !== 'custom' ? this.componentGap : 0
+      return (this.canvasStyleData.panel.gap === 'yes' && this.element.auxiliaryMatrix) ? this.componentGap : 0
+    },
+    miniWidth() {
+      return this.element.auxiliaryMatrix ? this.curCanvasScale.matrixStyleWidth * (this.element.miniSizex || 1) : 0
+    },
+    miniHeight() {
+      if (this.element.auxiliaryMatrix) {
+        if (this.element.component === 'de-number-range') {
+          return this.element.auxiliaryMatrix ? this.curCanvasScale.matrixStyleHeight * (this.element.miniSizey || 2) : 0
+        } else {
+          return this.element.auxiliaryMatrix ? this.curCanvasScale.matrixStyleHeight * (this.element.miniSizey || 1) : 0
+        }
+      } else {
+        return 0
+      }
     },
     ...mapState([
       'editor',
@@ -542,7 +585,9 @@ export default {
       'canvasStyleData',
       'linkageSettingStatus',
       'mobileLayoutStatus',
-      'componentGap'
+      'componentGap',
+      'scrollAutoMove',
+      'batchOptStatus'
     ])
   },
   watch: {
@@ -616,15 +661,12 @@ export default {
       this.maxH = val
     },
     w(val) {
-      // console.log('changeWidthCK：' + this.resizing)
-
       if (this.resizing || this.dragging) {
         return
       }
       if (this.parent) {
         this.bounds = this.calcResizeLimits()
       }
-      // console.log('changeWidth：' + val)
       this.changeWidth(val)
     },
     h(val) {
@@ -645,12 +687,14 @@ export default {
     dragging(val) {
       if (this.enabled) {
         this.curComponent.optStatus.dragging = val
+        this.$store.commit('setScrollAutoMove', 0)
       }
     },
     // private 监控dragging  resizing
     resizing(val) {
       if (this.enabled) {
         this.curComponent.optStatus.resizing = val
+        this.$store.commit('setScrollAutoMove', 0)
       }
     }
   },
@@ -707,6 +751,9 @@ export default {
       }
       return [null, null]
     },
+    triggerPluginEdit(e) {
+      this.elementMouseDown(e)
+    },
     // 元素触摸按下
     elementTouchDown(e) {
       eventsFor = events.touch
@@ -715,7 +762,7 @@ export default {
     elementMouseDown(e) {
       // private 设置当前组件数据及状态
       this.$store.commit('setClickComponentStatus', true)
-      if (this.element.component !== 'v-text' && this.element.component !== 'rect-shape' && this.element.component !== 'de-input-search' && this.element.component !== 'de-select-grid' && this.element.component !== 'de-number-range' && this.element.component !== 'de-date') {
+      if (this.element.component !== 'de-frame' && this.element.component !== 'v-text' && this.element.component !== 'de-rich-text' && this.element.component !== 'rect-shape' && this.element.component !== 'de-input-search' && this.element.component !== 'de-select-grid' && this.element.component !== 'de-number-range' && this.element.component !== 'de-date') {
         e.preventDefault()
       }
       // 阻止冒泡事件
@@ -723,6 +770,8 @@ export default {
       // 此处阻止冒泡 但是外层需要获取pageX pageY
       this.element.auxiliaryMatrix && this.$emit('elementMouseDown', e)
       this.$store.commit('setCurComponent', { component: this.element, index: this.index })
+      // 移动端组件点击自动置顶
+      this.mobileLayoutStatus && this.$store.commit('topComponent')
       eventsFor = events.mouse
       this.elementDown(e)
     },
@@ -762,6 +811,8 @@ export default {
         this.mouseClickPosition.bottom = this.bottom
         this.mouseClickPosition.width = this.width
         this.mouseClickPosition.height = this.height
+        // 鼠标按下 重置上次鼠标指针位置
+        this.latestMoveY = this.mouseClickPosition.mouseY
         if (this.parent) {
           this.bounds = this.calcDragLimits()
         }
@@ -954,7 +1005,7 @@ export default {
     move(e) {
       if (this.resizing) {
         this.handleResize(e)
-      } else if (this.dragging) {
+      } else if (this.dragging && !this.element.editing) {
         this.handleDrag(e)
       } else if (this.rotating) {
         this.handleRotate(e)
@@ -996,7 +1047,12 @@ export default {
       // 水平移动
       const tmpDeltaX = axis && axis !== 'y' ? mouseClickPosition.mouseX - (e.touches ? e.touches[0].pageX : e.pageX) : 0
       // 垂直移动
-      const tmpDeltaY = axis && axis !== 'x' ? mouseClickPosition.mouseY - (e.touches ? e.touches[0].pageY : e.pageY) : 0
+      const mY = e.touches ? e.touches[0].pageY : e.pageY
+      const tmpDeltaY = axis && axis !== 'x' ? mouseClickPosition.mouseY - mY : 0
+      // mY 鼠标指针移动的点 mY - this.latestMoveY 是计算向下移动还是向上移动
+      const offsetY = mY - this.latestMoveY
+      this.$emit('canvasDragging', mY, offsetY)
+      this.latestMoveY = mY
       const [deltaX, deltaY] = snapToGrid(grid, tmpDeltaX, tmpDeltaY, this.scaleRatio)
       const left = restrictToBounds(mouseClickPosition.left - deltaX, bounds.minLeft, bounds.maxLeft)
       const top = restrictToBounds(mouseClickPosition.top - deltaY, bounds.minTop, bounds.maxTop)
@@ -1006,7 +1062,7 @@ export default {
       const right = restrictToBounds(mouseClickPosition.right + deltaX, bounds.minRight, bounds.maxRight)
       const bottom = restrictToBounds(mouseClickPosition.bottom + deltaY, bounds.minBottom, bounds.maxBottom)
       this.left = left
-      this.top = top
+      this.top = top + this.scrollAutoMove
       this.right = right
       this.bottom = bottom
       await this.snapCheck()
@@ -1174,11 +1230,12 @@ export default {
         newH = restrictToBounds(newH, 0, this.parentHeight)
       }
       // 外部传参限制大小
-      newW = restrictToBounds(newW, this.minW || 0, this.maxW)
-      newH = restrictToBounds(newH, this.minH || 0, this.maxH)
+      // newW = restrictToBounds(newW, this.minW || 0, this.maxW)
+      // newH = restrictToBounds(newH, this.minH || 0, this.maxH)
+      newW = restrictToBounds(newW, this.miniWidth || 0, this.maxW)
+      newH = restrictToBounds(newH, this.miniHeight || 0, this.maxH)
       // 纵横比
       if (this.lockAspectRatio) {
-        // console.log(this.lockAspectRatio, this.aspectFactor)
         if (newW / newH > this.aspectFactor) {
           newW = newH * this.aspectFactor
         } else {
@@ -1186,7 +1243,6 @@ export default {
         }
       }
       this.width = newW
-      // console.log('width2:' + this.width)
       this.height = newH
 
       // this.$emit('resizing', this.left, this.top, this.width, this.height)
@@ -1197,8 +1253,6 @@ export default {
       this.element.propValue && this.element.propValue.viewId && eventBus.$emit('resizing', this.element.propValue.viewId)
     },
     changeWidth(val) {
-      // console.log('parentWidth', this.parentWidth)
-      // console.log('parentHeight', this.parentHeight)
       // eslint-disable-next-line no-unused-vars
       const [newWidth, _] = snapToGrid(this.grid, val, 0, this.scale)
       // const right = restrictToBounds(this.parentWidth - newWidth - this.left, this.bounds.minRight, this.bounds.maxRight)
@@ -1213,15 +1267,15 @@ export default {
       this.right = right
       this.bottom = bottom
       this.width = width
-      // console.log('width3:' + this.width)
       this.height = height
     },
     changeHeight(val) {
       // eslint-disable-next-line no-unused-vars
       const [_, newHeight] = snapToGrid(this.grid, 0, val, this.scale)
       // const bottom = restrictToBounds(this.parentHeight - newHeight - this.top, this.bounds.minBottom, this.bounds.maxBottom)
-      // private 将 this.bounds.minBottom 设置为0
-      const bottom = restrictToBounds(this.parentHeight - newHeight - this.top, 0, this.bounds.maxBottom)
+      // private 将 this.bounds.minBottom parentHeight理论不设上限 所以这里不再检验bottom底部距离
+      // const bottom = restrictToBounds(this.parentHeight - newHeight - this.top, 0, this.bounds.maxBottom)
+      const bottom = this.parentHeight - newHeight - this.top
       let right = this.right
       if (this.lockAspectRatio) {
         right = this.right - (this.bottom - bottom) * this.aspectFactor
@@ -1231,7 +1285,6 @@ export default {
       this.right = right
       this.bottom = bottom
       this.width = width
-      // console.log('width4:' + this.width)
       this.height = height
     },
     // 从控制柄松开
@@ -1249,7 +1302,6 @@ export default {
       this.lastMouseY = mouseY
       if (this.resizing) {
         this.resizing = false
-        // console.log('resizing2:' + this.resizing)
         this.conflictCheck()
         this.$emit('refLineParams', refLine)
         // this.$emit('resizestop', this.left, this.top, this.width, this.height)
@@ -1336,7 +1388,6 @@ export default {
               this.top = this.mouseClickPosition.top
               this.left = this.mouseClickPosition.left
               this.width = this.mouseClickPosition.width
-              // console.log('width5:' + this.width)
               this.height = this.mouseClickPosition.height
             }
           }
@@ -1520,7 +1571,6 @@ export default {
       let groupLeft = 0
       let groupTop = 0
       for (const item of nodes) {
-        // console.log('===' + typeof item.tagName)
         // 修复判断条件
         // if (item.className !== undefined && item.className.split(' ').includes(this.classNameActive)) {
         if (item.tagName !== 'svg' && item.className !== undefined && item.className.split(' ').includes(this.classNameActive)) {
@@ -1563,7 +1613,6 @@ export default {
     },
     // 记录当前样式
     recordCurStyle() {
-      // debugger
       const style = {
         ...this.defaultStyle
       }
@@ -1578,7 +1627,6 @@ export default {
 
     // 记录当前样式 矩阵处理
     recordMatrixCurStyle() {
-      // debugger
       const left = Math.round(this.left / this.curCanvasScale.matrixStyleWidth) * this.curCanvasScale.matrixStyleWidth
       const top = Math.round(this.top / this.curCanvasScale.matrixStyleHeight) * this.curCanvasScale.matrixStyleHeight
       const width = Math.round(this.width / this.curCanvasScale.matrixStyleWidth) * this.curCanvasScale.matrixStyleWidth
@@ -1603,7 +1651,6 @@ export default {
     },
     // 记录当前样式 跟随阴影位置 矩阵处理
     recordMatrixCurShadowStyle() {
-      // debugger
       const left = (this.element.x - 1) * this.curCanvasScale.matrixStyleWidth
       const top = (this.element.y - 1) * this.curCanvasScale.matrixStyleHeight
       const width = this.element.sizex * this.curCanvasScale.matrixStyleWidth
@@ -1623,7 +1670,6 @@ export default {
       style.height = height
       style.rotate = this.rotate
       // this.hasMove = true
-      // console.log('recordMatrixCurShadowStyle:t1:' + JSON.stringify(style))
 
       this.$store.commit('setShapeStyle', style)
 
@@ -1653,7 +1699,6 @@ export default {
         this.aspectFactor = this.outsideAspectRatio
       }
       this.width = this.w !== 'auto' ? this.w : width
-      // console.log('width1:' + this.width)
       this.height = this.h !== 'auto' ? this.h : height
       this.right = this.parentWidth - this.width - this.left
       this.bottom = this.parentHeight - this.height - this.top
@@ -1711,6 +1756,10 @@ export default {
     // 跳转设置
     linkJumpSet() {
       this.$emit('linkJumpSet')
+    },
+    // 跳转设置
+    boardSet() {
+      this.$emit('boardSet')
     }
   }
 
@@ -1804,12 +1853,25 @@ export default {
   opacity: 0.5;
 }
 
+.batchSetting{
+  opacity: 0.9;
+}
+
 .positionChange{
   transition: 0.2s
 }
 
 .de-drag-active{
-  outline: 1px solid #70c0ff;
   user-select: none;
 }
+
+.de-drag-active-inner{
+  outline: 1px solid #70c0ff;
+}
+  .main-background{
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    background-size: 100% 100% !important;
+  }
 </style>

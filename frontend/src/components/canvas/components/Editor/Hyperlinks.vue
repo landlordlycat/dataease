@@ -7,7 +7,7 @@
   >
     <el-row>
       <el-form ref="form" size="mini" label-width="70px">
-        <el-form-item :label="$t('panel.is_enable')">
+        <el-form-item :label="$t('panel.enable_jump')">
           <el-switch v-model="linkInfo.enable" size="mini" />
           <span v-show="linkInfo.enable" style="color: #909399; font-size: 8px;margin-left: 3px">
             Tips:{{ $t('panel.link_open_tips') }}
@@ -28,13 +28,14 @@
         </el-form-item>
       </el-form>
     </el-row>
-    <i slot="reference" class="icon iconfont icon-chaolianjie" />
+    <i slot="reference" class="icon iconfont icon-font icon-chaolianjie1" />
   </el-popover>
 </template>
 
 <script>
 import { mapState } from 'vuex'
 import { deepCopy } from '@/components/canvas/utils/utils'
+import { checkAddHttp } from '@/utils/urlUtils'
 
 export default {
   props: {
@@ -60,6 +61,7 @@ export default {
   },
   methods: {
     onSubmit() {
+      this.linkInfo.content = checkAddHttp(this.linkInfo.content)
       this.curComponent.hyperlinks = deepCopy(this.linkInfo)
       this.$store.state.styleChangeTimes++
       this.popoverClose()
@@ -116,6 +118,9 @@ export default {
   >>>.el-popover{
     height: 200px;
     overflow: auto;
+  }
+  .icon-font{
+    color: white;
   }
 
 </style>

@@ -35,47 +35,52 @@
                   node-key="id"
                   :data="datas"
                   :props="defaultProps"
-                  lazy
-                  :load="loadTree"
+
                   @node-click="handleNodeClick"
                 >
-                  <div slot-scope="{ node, data }" class="custom-tree-node">
-                    <!-- <el-button v-if="data.type === 'db'" icon="el-icon-s-data" type="text" size="mini" /> -->
+                  <span slot-scope="{ node, data }" style="display: flex;flex: 1;width: 0%;" class="custom-tree-node">
                     <span>
-                      <svg-icon v-if="data.type === 'db'" icon-class="ds-db" class="ds-icon-db" />
-                      <svg-icon v-if="data.type === 'sql'" icon-class="ds-sql" class="ds-icon-sql" />
-                      <svg-icon v-if="data.type === 'excel'" icon-class="ds-excel" class="ds-icon-excel" />
-                      <svg-icon v-if="data.type === 'custom'" icon-class="ds-custom" class="ds-icon-custom" />
-                      <svg-icon v-if="data.type === 'union'" icon-class="ds-union" class="ds-icon-union" />
+                      <svg-icon v-if="data.modelInnerType === 'db'" icon-class="ds-db" class="ds-icon-db" />
+                      <svg-icon v-if="data.modelInnerType === 'sql'" icon-class="ds-sql" class="ds-icon-sql" />
+                      <svg-icon v-if="data.modelInnerType === 'excel'" icon-class="ds-excel" class="ds-icon-excel" />
+                      <svg-icon v-if="data.modelInnerType === 'custom'" icon-class="ds-custom" class="ds-icon-custom" />
+                      <svg-icon v-if="data.modelInnerType === 'union'" icon-class="ds-union" class="ds-icon-union" />
+                      <svg-icon v-if="data.modelInnerType === 'api'" icon-class="ds-api" class="ds-icon-api" />
                     </span>
-                    <el-tooltip class="item" effect="dark" placement="top">
-                      <div slot="content">{{ node.label }}</div>
-                      <span class="label-span">{{ node.label }}</span>
-                    </el-tooltip>
+                    <span v-if="data.modelInnerType === 'db' || data.modelInnerType === 'sql'">
+                      <span v-if="data.mode === 0" style="margin-left: 6px"><i class="el-icon-s-operation" /></span>
+                      <span v-if="data.mode === 1" style="margin-left: 6px"><i class="el-icon-alarm-clock" /></span>
+                    </span>
 
-                  </div>
+                    <span style="margin-left: 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" :title="node.label">{{ node.label }}</span>
+
+                  </span>
                 </el-tree>
 
                 <div v-if="showDomType === 'field'">
                   <draggable
                     v-model="fieldDatas"
-                    :disabled="selectField.length !== 0"
                     :options="{group:{name: 'dimension',pull:'clone'},sort: true}"
                     animation="300"
                     :move="onMove"
                     class="drag-list"
-                    @end="end1"
-                    @start="start1"
+                    @end="end"
                   >
                     <transition-group>
                       <div
-                        v-for="item in fieldDatas.filter(item => !keyWord || (item.name && item.name.toLocaleLowerCase().includes(keyWord)))"
+                        v-for="item in fieldDatas"
                         :key="item.id"
-                        :class="componentInfo && componentInfo.options.attrs.fieldId === item.id ? 'filter-db-row-checked' : 'filter-db-row'"
+                        :class="myAttrs && myAttrs.fieldId && myAttrs.fieldId.includes(item.id) ? 'filter-db-row-checked' : 'filter-db-row'"
                         class="filter-db-row"
+                        style="margin: 5px 0;"
                       >
-                        <i class="el-icon-s-data" />
-                        <span> {{ item.name }}</span>
+                        <span style="display: flex;flex: 1;">
+                          <span>
+                            <i class="el-icon-s-data" />
+                          </span>
+
+                          <span style="margin-left: 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" :title="item.name">{{ item.name }}</span>
+                        </span>
                       </div>
                     </transition-group>
                   </draggable>
@@ -124,8 +129,15 @@
                   <el-table-column prop="name" :label="$t('commons.name')">
                     <template v-if="comShowDomType === 'view'" :id="scope.row.id" slot-scope="scope">
                       <div class="filter-db-row" @click="comShowFieldDatas(scope.row)">
-                        <i class="el-icon-s-data" />
-                        <span> {{ scope.row.name }}</span>
+                        <!-- <i class="el-icon-s-data" />
+                        <span> {{ scope.row.name }}</span> -->
+                        <span style="display: flex;flex: 1;">
+                          <span>
+                            <i class="el-icon-s-data" />
+                          </span>
+
+                          <span style="margin-left: 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" :title="scope.row.name">{{ scope.row.name }}</span>
+                        </span>
                       </div>
                     </template>
                   </el-table-column>
@@ -134,23 +146,28 @@
                 <div v-else-if="comShowDomType === 'field'">
                   <draggable
                     v-model="comFieldDatas"
-                    :disabled="selectField.length !== 0"
                     :options="{group:{name: 'dimension',pull:'clone'},sort: true}"
                     animation="300"
                     :move="onMove"
                     class="drag-list"
-                    @end="end1"
-                    @start="start1"
+                    @end="end"
                   >
                     <transition-group>
                       <div
-                        v-for="item in comFieldDatas.filter(item => !viewKeyWord || item.name.toLocaleLowerCase().includes(viewKeyWord))"
+                        v-for="item in comFieldDatas"
                         :key="item.id"
-                        :class="componentInfo && componentInfo.options.attrs.fieldId === item.id ? 'filter-db-row-checked' : 'filter-db-row'"
+                        :class="myAttrs && myAttrs.fieldId && myAttrs.fieldId.includes(item.id) ? 'filter-db-row-checked' : 'filter-db-row'"
                         class="filter-db-row"
+                        style="margin: 5px 0;"
                       >
-                        <i class="el-icon-s-data" />
-                        <span> {{ item.name }}</span>
+                        <span style="display: flex;flex: 1;">
+                          <span>
+                            <i class="el-icon-s-data" />
+                          </span>
+
+                          <span style="margin-left: 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" :title="item.name">{{ item.name }}</span>
+                        </span>
+
                       </div>
                     </transition-group>
                   </draggable>
@@ -163,138 +180,13 @@
     </de-aside-container>
 
     <de-main-container class="ms-main-container">
-      <div>
-        <el-row>
-          <el-col :span="24">
-            <div class="filter-field">
-              <div class="field-content">
-                <!-- <div class="field-content-left">
-                  <div class="field-content-text">{{ $t('panel.field') }} </div>
-                </div> -->
+      <div v-if="currentElement.options && currentElement.options.attrs">
+        <filter-head :element="currentElement" />
 
-                <div class="field-content-right">
-                  <el-row style="display:flex;height: 32px;">
-                    <draggable
-                      v-model="selectField"
-                      group="dimension"
-                      animation="300"
-                      :move="onMove"
-                      class="theme-drag"
-                      style="width:100%;height: 100%;margin:0 10px;border-radius: 4px;overflow-x: auto;display: flex;align-items: center;"
-                      @end="end2"
-                    >
-                      <transition-group class="list-group" :data-value="$t('panel.drag_here')">
-                        <drag-item
-                          v-for="(item,index) in selectField"
-                          :key="item.id"
-                          :item="item"
-                          :index="index"
-                          @closeItem="closeItem"
-                        />
-                      </transition-group>
-                    </draggable>
-                  </el-row>
-                </div>
-              </div>
-            </div>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="8">
-            <div class="filter-options-left">
-              <el-switch
-                v-if="widget.showSwitch"
-                v-model="componentInfo.options.attrs.multiple"
-                :active-text="$t('panel.multiple_choice')"
-                :inactive-text="$t('panel.single_choice')"
-                @change="multipleChange"
-              />
-            </div>
-          </el-col>
-          <el-col :span="16">
-            <div class="filter-options-right">
-              <span style="padding-right: 10px;">
-                <el-checkbox v-model="componentInfo.options.attrs.showTitle" @change="showTitleChange">显示标题
-                </el-checkbox>
-                <el-popover
-                  v-model="titlePopovervisible"
-                  placement="bottom-end"
-                  :disabled="!componentInfo.options.attrs.showTitle"
-                  width="200"
-                >
-                  <div
-                    style="width: 100%;overflow-y: auto;overflow-x: hidden;word-break: break-all;position: relative;"
-                  >
-                    <el-input
-                      v-model="componentInfo.options.attrs.title"
-                      placeholder="请输入标题"
-                      type="textarea"
-                      maxlength="15"
-                      show-word-limit
-                    />
-                  </div>
+        <filter-control :element="currentElement" :widget="widget" :control-attrs="myAttrs" :child-views="childViews" />
 
-                  <i
-                    slot="reference"
-                    :class="{'i-filter-active': componentInfo.options.attrs.showTitle, 'i-filter-inactive': !componentInfo.options.attrs.showTitle}"
-                    class="el-icon-setting i-filter"
-                  />
-                </el-popover>
-              </span>
-              <span style="padding-left: 10px;">
-                <el-checkbox v-model="componentInfo.options.attrs.enableRange" @change="enableRangeChange"><span>
-                  {{ $t('panel.custom_scope') }} </span> </el-checkbox>
+        <filter-foot :element="currentElement" />
 
-                <el-popover
-                  v-model="popovervisible"
-                  placement="bottom-end"
-                  :disabled="!componentInfo.options.attrs.enableRange"
-                  width="200"
-                >
-                  <div class="view-container-class">
-                    <el-checkbox-group v-model="componentInfo.options.attrs.viewIds" @change="checkedViewsChange">
-                      <el-checkbox v-for="(item ) in viewInfos" :key="item.id" :label="item.id" class="de-checkbox">
-                        <div class="span-div">
-                          <svg-icon :icon-class="item.type" class="chart-icon" />
-                          <span
-                            v-if="item.name && item.name.length <= 7"
-                            style="margin-left: 6px"
-                          >{{ item.name }}</span>
-                          <el-tooltip v-else class="item" effect="dark" :content="item.name" placement="left">
-                            <span style="margin-left: 6px">{{ item.name }}</span>
-                          </el-tooltip>
-                        </div>
-
-                      </el-checkbox>
-                    </el-checkbox-group>
-                  </div>
-
-                  <i
-                    slot="reference"
-                    :class="{'i-filter-active': componentInfo.options.attrs.enableRange, 'i-filter-inactive': !componentInfo.options.attrs.enableRange}"
-                    class="el-icon-setting i-filter"
-                  />
-                </el-popover>
-              </span>
-            </div>
-
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <div class="filter-content">
-              <el-card class="box-card">
-                <div style="margin-bottom: 10px;">
-                  <span> {{ widget.label }}</span>
-                </div>
-                <div class="custom-component-class">
-                  <slot />
-                </div>
-              </el-card>
-
-            </div>
-          </el-col>
-        </el-row>
       </div>
     </de-main-container>
   </de-container>
@@ -305,16 +197,17 @@ import DeMainContainer from '@/components/dataease/DeMainContainer'
 import DeContainer from '@/components/dataease/DeContainer'
 import DeAsideContainer from '@/components/dataease/DeAsideContainer'
 import draggable from 'vuedraggable'
-import DragItem from '@/components/DragItem'
+import FilterHead from './filterMain/FilterHead'
+import FilterControl from './filterMain/FilterControl'
+import FilterFoot from './filterMain/FilterFoot'
+import bus from '@/utils/bus'
+import { queryAuthModel } from '@/api/authModel/authModel'
 import {
   mapState
 } from 'vuex'
-  // import { ApplicationContext } from '@/utils/ApplicationContext'
 import {
   groupTree,
-  fieldList,
-  fieldValues,
-  post
+  fieldListWithPermission
 } from '@/api/dataset/dataset'
 import {
   viewsWithIds
@@ -329,7 +222,9 @@ export default {
     DeContainer,
     DeAsideContainer,
     draggable,
-    DragItem
+    FilterHead,
+    FilterControl,
+    FilterFoot
   },
   props: {
 
@@ -337,9 +232,10 @@ export default {
       type: Object,
       default: null
     },
-    componentInfo: {
+
+    element: {
       type: Object,
-      default: null
+      default: () => {}
     }
   },
 
@@ -362,7 +258,9 @@ export default {
       sceneDatas: [],
       //   viewDatas: [],
       fieldDatas: [],
+      originFieldDatas: [],
       comFieldDatas: [],
+      originComFieldDatas: [],
       defaultProps: {
         label: 'name',
         children: 'children',
@@ -370,7 +268,6 @@ export default {
         id: 'id',
         parentId: 'pid'
       },
-      selectField: [],
       widget: null,
       fieldValues: [],
       popovervisible: false,
@@ -390,52 +287,45 @@ export default {
       expandedArray: [],
       viewKeyWord: '',
       titlePopovervisible: false,
-      fieldsParent: null
+      fieldsParent: null,
+
+      myAttrs: null,
+
+      childViews: {
+        viewInfos: []
+      },
+      currentElement: null
     }
   },
   computed: {
-    panelInfo() {
-      return this.$store.state.panel.panelInfo
-    },
+
     ...mapState([
-      'componentData',
-      'curComponent',
-      'isClickComponent',
-      'canvasStyleData',
-      'curComponentIndex'
+      'componentData'
     ])
   },
 
   watch: {
-    selectField(values) {
+    'myAttrs.dragItems'(values) {
       if (values && values.length > 0) {
-        const value = values[0]
-        const fieldId = value.id
-        if (this.widget && this.widget.optionDatas) {
-          fieldValues(fieldId).then(res => {
-            this.componentInfo.options.attrs.datas = this.widget.optionDatas(res.data)
-            this.componentInfo.options.attrs.fieldId = fieldId
-            this.componentInfo.options.attrs.dragItems = values
-            this.componentInfo.options.attrs.activeName = this.activeName
-            this.componentInfo.options.attrs.fieldsParent = this.fieldsParent
-            this.$emit('re-fresh-component', this.componentInfo)
-          })
-        } else {
-          this.componentInfo.options.attrs.fieldId = fieldId
-          this.componentInfo.options.attrs.dragItems = values
-          this.componentInfo.options.attrs.activeName = this.activeName
-          this.componentInfo.options.attrs.fieldsParent = this.fieldsParent
-          this.$emit('re-fresh-component', this.componentInfo)
-        }
-      } else if (this.componentInfo && this.componentInfo.options.attrs.fieldId) {
-        this.componentInfo.options.attrs.fieldId = null
-        this.componentInfo.options.attrs.activeName = null
-        this.$emit('re-fresh-component', this.componentInfo)
+        const fieldIds = values.map(val => val.id)
+        this.myAttrs.fieldId = fieldIds.join()
+        // this.myAttrs.dragItems = values
+        this.myAttrs.activeName = this.activeName
+        this.myAttrs.fieldsParent = this.fieldsParent
+      } else if (this.myAttrs && this.myAttrs.fieldId) {
+        this.myAttrs.fieldId = null
+        this.myAttrs.activeName = null
       }
+      this.enableSureButton()
     },
     keyWord(val) {
       this.expandedArray = []
       if (this.showDomType === 'field') {
+        let results = this.originFieldDatas
+        if (val) {
+          results = this.originFieldDatas.filter(item => item.name.toLocaleLowerCase().includes(val.toLocaleLowerCase()))
+        }
+        this.fieldDatas = JSON.parse(JSON.stringify(results))
         return
       }
       if (this.timer) {
@@ -444,26 +334,62 @@ export default {
       this.timer = setTimeout(() => {
         this.getTreeData(val)
       }, (val && val !== '') ? 1000 : 0)
+    },
+
+    viewKeyWord(val) {
+      if (this.comShowDomType === 'field') {
+        let results = this.originComFieldDatas
+        if (val) {
+          results = this.originComFieldDatas.filter(item => item.name.toLocaleLowerCase().includes(val.toLocaleLowerCase()))
+        }
+        this.comFieldDatas = JSON.parse(JSON.stringify(results))
+      }
     }
   },
   created() {
-    // this.widget = ApplicationContext.getService(this.widgetId)
     this.widget = this.widgetInfo
+    this.currentElement = JSON.parse(JSON.stringify(this.element))
+    this.myAttrs = this.currentElement.options.attrs
     this.treeNode(this.groupForm)
 
-    if (this.componentInfo && this.componentInfo.options.attrs.dragItems) {
-      this.selectField = this.componentInfo.options.attrs.dragItems
+    if (this.myAttrs && this.myAttrs.dragItems) {
+      this.enableSureButton()
     }
     this.initWithField()
     this.loadViews()
   },
+  mounted() {
+    bus.$on('valid-values-change', valid => {
+      this.validateFilterValue(valid)
+    })
+  },
 
   methods: {
+
+    treeNode(cache) {
+      const modelInfo = localStorage.getItem('dataset-tree')
+      const userCache = (modelInfo && cache)
+      if (userCache) {
+        this.tData = JSON.parse(modelInfo)
+        const results = this.buildTree(this.tData)
+        this.defaultDatas = JSON.parse(JSON.stringify(results))
+        this.datas = JSON.parse(JSON.stringify(results))
+      }
+      queryAuthModel({ modelType: 'dataset' }, !userCache).then(res => {
+        localStorage.setItem('dataset-tree', JSON.stringify(res.data))
+        if (!userCache) {
+          this.tData = res.data
+          const results = this.buildTree(this.tData)
+          this.defaultDatas = JSON.parse(JSON.stringify(results))
+          this.datas = JSON.parse(JSON.stringify(results))
+        }
+      })
+    },
     initWithField() {
-      if (this.componentInfo && this.componentInfo.options.attrs.activeName) {
-        this.activeName = this.componentInfo.options.attrs.activeName
-        if (this.componentInfo.options.attrs.fieldsParent) {
-          this.fieldsParent = this.componentInfo.options.attrs.fieldsParent
+      if (this.myAttrs && this.myAttrs.activeName) {
+        this.activeName = this.myAttrs.activeName
+        if (this.myAttrs.fieldsParent) {
+          this.fieldsParent = this.myAttrs.fieldsParent
           this.$nextTick(() => {
             this.activeName === 'dataset' && this.showFieldDatas(this.fieldsParent)
             this.activeName !== 'dataset' && this.comShowFieldDatas(this.fieldsParent)
@@ -519,12 +445,30 @@ export default {
       return roots
     },
     loadViews() {
-      const viewIds = this.componentData
+      /* const viewIds = this.componentData
         .filter(item => item.type === 'view' && item.propValue && item.propValue.viewId)
-        .map(item => item.propValue.viewId)
+        .map(item => item.propValue.viewId) */
+      let viewIds = []; let tabViewIds = []
+      for (let index = 0; index < this.componentData.length; index++) {
+        const element = this.componentData[index]
+        if (element.type && element.propValue && element.propValue.viewId && element.type === 'view') {
+          viewIds.push(element.propValue.viewId)
+        }
+
+        if (element.type && element.type === 'de-tabs') {
+          tabViewIds = element.options.tabList.filter(item => item.content && item.content.type === 'view' && item.content.propValue && item.content.propValue.viewId).map(item => item.content.propValue.viewId)
+        }
+        viewIds = [...viewIds, ...tabViewIds]
+      }
       viewIds && viewIds.length > 0 && viewsWithIds(viewIds).then(res => {
         const datas = res.data
+        /* datas.forEach(item => {
+          if (tabViewIds.includes(item.id)) {
+            item.name = 'tabs(' + item.name + ')'
+          }
+        }) */
         this.viewInfos = datas
+        this.childViews.viewInfos = datas
       })
     },
     handleNodeClick(data) {
@@ -532,28 +476,7 @@ export default {
         this.showFieldDatas(data)
       }
     },
-    loadTree(node, resolve) {
-      if (!this.isTreeSearch) {
-        if (node.level > 0) {
-          if (node.data.id) {
-            post('/dataset/table/listAndGroup', {
-              sort: 'type asc,name asc,create_time desc',
-              sceneId: node.data.id
-            }).then(res => {
-              resolve(res.data)
-            })
-          }
-        }
-      } else {
-        node.data.children && resolve(node.data.children)
-      }
-    },
-    treeNode(group) {
-      post('/dataset/group/treeNode', group).then(res => {
-        this.defaultDatas = res.data
-        this.datas = res.data
-      })
-    },
+
     loadDataSetTree() {
       groupTree({}).then(res => {
         const datas = res.data
@@ -598,19 +521,12 @@ export default {
           return
         }
       }
-      //   this.dataSetBreads = this.dataSetBreads.slice(0, this.dataSetBreads.length - 1)
-      //   this.dataSetBreads[this.dataSetBreads.length - 1]['link'] = false
     },
     comRemoveTail() {
       this.componentSetBreads = this.componentSetBreads.slice(0, this.componentSetBreads.length - 1)
       this.componentSetBreads[this.componentSetBreads.length - 1]['link'] = false
     },
     backToLink(bread) {
-      //   if (bread.type === 'field') {
-      //     this.showDomType = 'db'
-      //   } else {
-      //     this.showDomType = 'tree'
-      //   }
       this.showDomType = 'tree'
 
       this.removeTail(bread)
@@ -626,31 +542,25 @@ export default {
       this.viewKeyWord = ''
       this.comRemoveTail()
     },
-    // loadTable(sceneId) {
-    //   loadTable({ sceneId: sceneId, sort: 'type asc,create_time desc,name asc' }).then(res => {
-    //     res && res.data && (this.sceneDatas = res.data.map(tb => {
-    //       tb.type = 'db'
-    //       return tb
-    //     }))
-    //   })
-    // },
 
     loadField(tableId) {
-      fieldList(tableId).then(res => {
+      fieldListWithPermission(tableId).then(res => {
         let datas = res.data
         if (this.widget && this.widget.filterFieldMethod) {
           datas = this.widget.filterFieldMethod(datas)
         }
-        this.fieldDatas = datas
+        this.originFieldDatas = datas
+        this.fieldDatas = JSON.parse(JSON.stringify(datas))
       })
     },
     comLoadField(tableId) {
-      fieldList(tableId).then(res => {
+      fieldListWithPermission(tableId).then(res => {
         let datas = res.data
         if (this.widget && this.widget.filterFieldMethod) {
           datas = this.widget.filterFieldMethod(datas)
         }
-        this.comFieldDatas = datas
+        this.originComFieldDatas = datas
+        this.comFieldDatas = JSON.parse(JSON.stringify(datas))
       })
     },
     showFieldDatas(row) {
@@ -673,20 +583,12 @@ export default {
       this.moveId = e.draggedContext.element.id
       return true
     },
-    start1() {
 
-    },
-    end1(e) {
+    end(e) {
       this.refuseMove(e)
       this.removeCheckedKey(e)
-      this.save()
     },
-    save() {
 
-    },
-    end2(e) {
-      this.refuseMove(e)
-    },
     refuseMove(e) {
       const that = this
       const xItems = this.fieldDatas.filter(function(m) {
@@ -699,43 +601,36 @@ export default {
     },
     removeCheckedKey(e) {
       const that = this
-      const xItems = this.selectField.filter(function(m) {
+      if (!this.currentElement.options.attrs.dragItems) return
+      const xItems = this.currentElement.options.attrs.dragItems.filter(function(m) {
         return m.id === that.moveId
       })
 
       if (xItems && xItems.length > 1) {
-        this.selectField.splice(e.newDraggableIndex, 1)
+        this.currentElement.options.attrs.dragItems.splice(e.newDraggableIndex, 1)
       }
-    },
-    closeItem(tag) {
-      const index = tag.index
-      this.selectField.splice(index, 1)
     },
 
-    multipleChange(value) {
-      // this.componentInfo.options.attrs.multiple = value
-      //   this.componentInfo.options.value = null
-      this.$emit('re-fresh-component', this.componentInfo)
+    enableSureButton() {
+      let valid = true
+      const enable = this.currentElement.options.attrs.dragItems && this.currentElement.options.attrs.dragItems
+        .length > 0
+      if (this.widget.validDynamicValue) {
+        valid = this.widget.validDynamicValue(this.currentElement)
+      }
+      this.$emit('sure-button-status', enable && valid)
     },
 
-    checkedViewsChange(values) {
-      // this.componentInfo.options.attrs.viewIds = values
-      this.$emit('re-fresh-component', this.componentInfo)
+    getElementInfo() {
+      return this.currentElement
     },
-    enableRangeChange(value) {
-      if (!value) {
-        this.componentInfo.options.attrs.viewIds = []
-      }
-      // this.componentInfo.options.attrs.enableRange = value
-      this.$emit('re-fresh-component', this.componentInfo)
-    },
-    showTitleChange(value) {
-      if (!value) {
-        this.componentInfo.options.attrs.title = ''
-        this.componentInfo.style.backgroundColor = ''
-      }
-      this.$emit('re-fresh-component', this.componentInfo)
+
+    validateFilterValue(valid) {
+      const enable = this.currentElement.options.attrs.dragItems && this.currentElement.options.attrs.dragItems
+        .length > 0
+      this.$emit('sure-button-status', enable && valid)
     }
+
   }
 }
 
@@ -766,81 +661,6 @@ export default {
     height: 100%;
     min-height: 400px;
     padding: 5px 10px;
-  }
-
-  .filter-field {
-    //   background: #99a9bf;
-    border-radius: 4px;
-    height: 45px;
-
-    .field-content {
-      position: relative;
-      display: table;
-      width: 100%;
-      height: 100%;
-      white-space: nowrap;
-
-      .field-content-left {
-        width: 50px;
-        max-width: 50px;
-        position: relative;
-        display: table-cell;
-        vertical-align: middle;
-        margin: 0px;
-        padding: 8px;
-        height: 100%;
-        border-right: none;
-        border: 1px solid var(--TableBorderColor, #E6E6E6);
-        ;
-
-        .field-content-text {
-          box-sizing: border-box;
-          overflow: hidden;
-          overflow-x: hidden;
-          overflow-y: hidden;
-          word-break: break-all;
-        }
-      }
-
-      .field-content-right {
-        border-left: none;
-        color: #9ea6b2;
-        border: 1px solid var(--TableBorderColor, #E6E6E6);
-        width: 0%;
-        max-width: 0%;
-        position: relative;
-        display: table-cell;
-        vertical-align: middle;
-        margin: 0px;
-        padding: 0 0 0 0;
-        height: 100%;
-      }
-    }
-
-  }
-
-  .filter-options-left {
-    align-items: center;
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-start;
-    flex-wrap: nowrap;
-    height: 50px;
-  }
-
-  .filter-options-right {
-    align-items: center;
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-end;
-    flex-wrap: nowrap;
-    height: 50px;
-  }
-
-  .filter-content {
-    height: calc(50vh - 120px);
-    top: 160px;
-
   }
 
   .filter-dialog-tabs {
@@ -911,61 +731,6 @@ export default {
     display: inline-block;
     width: 100%;
     height: calc(100% - 6px);
-  }
-
-  .box-card {
-    width: 100%;
-    height: 100%;
-  }
-
-  .i-filter {
-    text-align: center;
-    margin-left: 5px;
-    margin-top: 1px;
-  }
-
-  .i-filter-inactive {
-    color: #9ea6b2 !important;
-    cursor: not-allowed !important;
-  }
-
-  .i-filter-active {
-    cursor: pointer !important;
-  }
-
-  .view-container-class {
-
-    min-height: 150px;
-    max-height: 200px;
-    width: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    word-break: break-all;
-    position: relative;
-
-  }
-
-  .list-group:empty,
-  .list-group>div:empty {
-    display: inline-block;
-    width: 100%;
-    height: calc(100% - 13px);
-  }
-
-  .list-group:empty:before,
-  .list-group>div:empty:before {
-    content: attr(data-value);
-  }
-
-  .blackTheme .theme-drag {
-    background-color: var(--MainBG, #fff);
-  }
-
-  .span-div {
-    width: 135px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
   }
 
 </style>

@@ -1,7 +1,10 @@
 <template>
   <el-row>
     <el-header class="de-header">
-      <el-col :span="8" style="text-overflow:ellipsis;overflow: hidden;white-space: nowrap;color: #606266;font-size: 16px">
+      <el-col
+        :span="8"
+        style="text-overflow:ellipsis;overflow: hidden;white-space: nowrap;color: #606266;font-size: 16px"
+      >
         <span style="line-height: 35px;">
           {{ $t('commons.name') }} ：{{ panelInfo.name || '测试仪表板' }}
         </span>
@@ -15,61 +18,119 @@
           @showPanel="showPanel"
           @previewFullScreen="previewFullScreen"
           @changeAidedDesign="changeAidedDesign"
+          @outerParamsSetVisibleChange="outerParamsSetVisibleChange"
         />
       </el-col>
     </el-header>
     <de-container>
-      <!--左侧导航栏-->
       <de-aside-container class="ms-aside-container">
-        <div v-if="showAside" style="width: 60px; left: 0px; top: 0px; bottom: 0px;  position: absolute">
-          <div style="width: 60px;height: 100%;overflow: hidden auto;position: relative;margin: 0px auto; font-size: 14px">
+        <div v-show="showAside" style="width: 60px; left: 0px; top: 0px; bottom: 0px;  position: absolute">
+          <div
+            style="width: 60px;height: 100%;overflow: hidden auto;position: relative;margin: 0px auto; font-size: 14px"
+          >
             <!-- 视图图表 start -->
-            <div class="button-div-class" style=" width: 24px;height: 24px;text-align: center;line-height: 1;position: relative;margin: 16px auto 0px;">
-              <el-button :class="show&&showIndex===0? 'button-show':'button-closed'" circle class="el-icon-circle-plus-outline" size="mini" @click="showPanel(0)" />
+            <div
+              class="button-div-class"
+              style=" width: 24px;height: 24px;text-align: center;line-height: 1;position: relative;margin: 16px auto 0px;"
+            >
+              <el-button circle class="el-icon-circle-plus-outline" size="mini" @click="newChart()" />
             </div>
             <div class="button-text" style="position: relative; margin: 18px auto 16px;">
-              <div style="max-width: 100%;text-align: center;white-space: nowrap;text-overflow: ellipsis;position: relative;flex-shrink: 0;">
+              <div
+                style="max-width: 100%;text-align: center;white-space: nowrap;text-overflow: ellipsis;position: relative;flex-shrink: 0;"
+              >
                 {{ $t('panel.view') }}
               </div>
             </div>
             <div style="height: 1px; position: relative; margin: 0px auto;background-color:#E6E6E6;">
-              <div style="width: 60px;height: 1px;line-height: 1px;text-align: center;white-space: pre;text-overflow: ellipsis;position: relative;flex-shrink: 0;" />
+              <div
+                style="width: 60px;height: 1px;line-height: 1px;text-align: center;white-space: pre;text-overflow: ellipsis;position: relative;flex-shrink: 0;"
+              />
             </div>
             <!-- 视图图表 end -->
             <!-- 过滤组件 start -->
-            <div tabindex="-1" style="position: relative; margin: 16px auto">
-              <div style="height: 60px; position: relative">
-                <div class="button-div-class" style=" text-align: center;line-height: 1;position: absolute;inset: 0px 0px 45px; ">
-                  <el-button circle :class="show&&showIndex===1? 'button-show':'button-closed'" class="el-icon-s-tools" size="mini" @click="showPanel(1)" />
-                </div>
-                <div class="button-text" style=" position: absolute;left: 0px;right: 0px;bottom: 10px; height: 16px;">
-                  <div style=" max-width: 100%;text-align: center;white-space: nowrap;text-overflow: ellipsis;position: relative;flex-shrink: 0;">
-                    {{ $t('panel.module') }}
-                  </div>
-                </div>
+
+            <div
+              class="button-div-class"
+              style="  width: 24px;height: 24px;text-align: center;line-height: 1;position: relative;margin: 16px auto 0px; "
+            >
+              <el-button
+                circle
+                :class="show&&showIndex===1? 'button-show':'button-closed'"
+                class="el-icon-s-tools"
+                size="mini"
+                @click="showPanel(1)"
+              />
+            </div>
+            <div class="button-text" style=" position: relative; margin: 18px auto 16px;">
+              <div
+                style=" max-width: 100%;text-align: center;white-space: nowrap;text-overflow: ellipsis;position: relative;flex-shrink: 0;"
+              >
+                {{ $t('panel.module') }}
               </div>
             </div>
+
             <div style="height: 1px; position: relative; margin: 0px auto;background-color:#E6E6E6;">
-              <div style="width: 60px;height: 1px;line-height: 1px;text-align: center;white-space: pre;text-overflow: ellipsis;position: relative;flex-shrink: 0;" />
+              <div
+                style="width: 60px;height: 1px;line-height: 1px;text-align: center;white-space: pre;text-overflow: ellipsis;position: relative;flex-shrink: 0;"
+              />
             </div>
             <!-- 过滤组件 end -->
             <!-- 其他组件 start -->
-            <div tabindex="-1" style="position: relative; margin: 16px auto">
-              <div style="height: 60px; position: relative">
-                <div class="button-div-class" style=" text-align: center;line-height: 1;position: absolute;inset: 0px 0px 45px; ">
-                  <el-button circle :class="show&&showIndex===3? 'button-show':'button-closed'" class="el-icon-brush" size="mini" @click="showPanel(3)" />
-                </div>
-                <div class="button-text" style=" position: absolute;left: 0px;right: 0px;bottom: 10px; height: 16px;">
-                  <div style=" max-width: 100%;text-align: center;white-space: nowrap;text-overflow: ellipsis;position: relative;flex-shrink: 0;">
-                    {{ $t('panel.other_module') }}
-                  </div>
-                </div>
+
+            <div
+              class="button-div-class"
+              style="  width: 24px;height: 24px;text-align: center;line-height: 1;position: relative;margin: 16px auto 0px; "
+            >
+              <el-button
+                circle
+                :class="show&&showIndex===3? 'button-show':'button-closed'"
+                class="el-icon-brush"
+                size="mini"
+                @click="showPanel(3)"
+              />
+            </div>
+            <div class="button-text" style=" position: relative; margin: 18px auto 16px;">
+              <div
+                style=" max-width: 100%;text-align: center;white-space: nowrap;text-overflow: ellipsis;position: relative;flex-shrink: 0;"
+              >
+                {{ $t('panel.other_module') }}
+              </div>
+            </div>
+
+            <div style="height: 1px; position: relative; margin: 0px auto;background-color:#E6E6E6;">
+              <div
+                style="width: 60px;height: 1px;line-height: 1px;text-align: center;white-space: pre;text-overflow: ellipsis;position: relative;flex-shrink: 0;"
+              />
+            </div>
+            <!-- 其他组件 end -->
+
+            <!-- 视图复用 start -->
+            <div
+              class="button-div-class"
+              style=" width: 24px;height: 24px;text-align: center;line-height: 1;position: relative;margin: 16px auto 0px;"
+            >
+              <el-button
+                circle
+                class="el-icon-copy-document button-closed"
+                size="mini"
+                @click="showMultiplexing(true)"
+              />
+            </div>
+            <div class="button-text" style="position: relative; margin: 18px auto 16px;">
+              <div
+                style="max-width: 100%;text-align: center;white-space: nowrap;text-overflow: ellipsis;position: relative;flex-shrink: 0;"
+              >
+                <!--                {{ $t('panel.view') }}-->
+                {{ $t('panel.multiplexing') }}
               </div>
             </div>
             <div style="height: 1px; position: relative; margin: 0px auto;background-color:#E6E6E6;">
-              <div style="width: 60px;height: 1px;line-height: 1px;text-align: center;white-space: pre;text-overflow: ellipsis;position: relative;flex-shrink: 0;" />
+              <div
+                style="width: 60px;height: 1px;line-height: 1px;text-align: center;white-space: pre;text-overflow: ellipsis;position: relative;flex-shrink: 0;"
+              />
             </div>
-            <!-- 其他组件 end -->
+            <!-- 视图复用 end -->
           </div>
         </div>
       </de-aside-container>
@@ -88,7 +149,7 @@
           :close-on-press-escape="false"
           :modal-append-to-body="true"
         >
-          <view-select v-show=" show && showIndex===0" @newChart="newChart" />
+          <!--          <view-select v-show=" show && showIndex===0" @newChart="newChart" />-->
           <filter-group v-show=" show &&showIndex===1" />
           <subject-setting v-show=" show &&showIndex===2" />
           <assist-component v-show=" show &&showIndex===3" />
@@ -106,13 +167,13 @@
           @mouseup="deselectCurComponent"
           @scroll="canvasScroll"
         >
-          <Editor ref="canvasEditor" :matrix-count="pcMatrixCount" :out-style="outStyle" :scroll-top="scrollTop" />
+          <Editor ref="canvasEditor" :matrix-count="pcMatrixCountBase" :out-style="outStyle" :scroll-top="scrollTop" />
         </div>
         <!--移动端画布区域 保持宽高比2.5-->
         <el-row v-if="mobileLayoutStatus" class="mobile_canvas_main">
           <el-col :span="8" class="this_mobile_canvas_cell">
             <div
-              v-proportion="2.5"
+              v-proportion="2.1"
               :style="customCanvasMobileStyle"
               class="this_mobile_canvas"
               @drop="handleDrop"
@@ -122,20 +183,68 @@
               @scroll="canvasScroll"
             >
               <el-row class="this_mobile_canvas_top" />
+              <el-row class="this_mobile_canvas_inner_top">
+                {{ panelInfo.name }}
+              </el-row>
               <el-row
                 id="canvasInfoMobile"
                 class="this_mobile_canvas_main"
+                :style="mobileCanvasStyle"
               >
-                <Editor ref="editorMobile" :matrix-count="mobileMatrixCount" :out-style="outStyle" :scroll-top="scrollTop" />
+                <Editor
+                  v-if="mobileEditorShow"
+                  id="editorMobile"
+                  ref="editorMobile"
+                  :matrix-count="mobileMatrixCount"
+                  :out-style="outStyle"
+                  :scroll-top="scrollTop"
+                  @canvasDragging="canvasDragging"
+                />
+              </el-row>
+              <el-row class="this_mobile_canvas_inner_bottom">
+                <el-col :span="12">
+                  <i v-if="!hasStar" class="el-icon-star-off" size="mini" @click="star" />
+                  <i
+                    v-if="hasStar"
+                    class="el-icon-star-on"
+                    style="color: #0a7be0;font-size: 18px"
+                    size="mini"
+                    @click="unstar"
+                  />
+                </el-col>
+                <el-col :span="12" style="float: right">
+                  <i class="el-icon-refresh-right" size="mini" @click="mobileRefresh" />
+                </el-col>
               </el-row>
               <el-row class="this_mobile_canvas_bottom" />
             </div>
           </el-col>
-          <el-col :span="16" class="this_mobile_canvas_cell">
+          <el-col :span="16" class="this_mobile_canvas_cell this_mobile_canvas_wait_cell" :style="mobileCanvasStyle">
             <component-wait />
           </el-col>
         </el-row>
       </de-main-container>
+
+      <div v-show="!mobileLayoutStatus&&rightDrawOpen" class="tools-window-main">
+        <div v-show="showViewToolsAside">
+          <chart-edit ref="chartEditRef" :edit-statue="showViewToolsAside&&!mobileLayoutStatus&&rightDrawOpen" :edit-from="'panel'" :param="chartEditParam" />
+        </div>
+        <div v-show="showBatchViewToolsAside">
+          <chart-style-batch-set />
+        </div>
+        <div v-show="!showViewToolsAside&&!showBatchViewToolsAside">
+          <el-row style="height: 40px">
+            <el-tooltip :content="$t('chart.draw_back')">
+              <el-button class="el-icon-d-arrow-right" style="position:absolute;left: 4px;top: 5px;" size="mini" circle @click="changeRightDrawOpen(false)" />
+            </el-tooltip>
+          </el-row>
+          <el-row>
+            <div class="view-selected-message-class">
+              <span style="font-size: 14px;margin-left: 10px;font-weight: bold;line-height: 20px">{{ $t('panel.select_view') }}</span>
+            </div>
+          </el-row>
+        </div>
+      </div>
     </de-container>
 
     <el-dialog
@@ -143,45 +252,43 @@
       :title="(currentWidget && currentWidget.getLeftPanel && currentWidget.getLeftPanel().label ? $t(currentWidget.getLeftPanel().label) : '') + $t('panel.module')"
       :visible.sync="filterVisible"
       custom-class="de-filter-dialog"
+      @close="cancelFilter"
     >
-      <filter-dialog v-if="filterVisible && currentWidget" :widget-info="currentWidget" :component-info="currentFilterCom" @re-fresh-component="reFreshComponent">
-        <component
-          :is="currentFilterCom.component"
-          :id="'component' + currentFilterCom.id"
-          class="component"
-          :style="currentFilterCom.style"
-          :element="currentFilterCom"
-          :in-draw="false"
-        />
-      </filter-dialog>
+      <filter-dialog
+        v-if="filterVisible && currentWidget"
+        :ref="'filter-setting-' + currentFilterCom.id"
+        :widget-info="currentWidget"
+        :element="currentFilterCom"
+        @sure-button-status="sureStatusChange"
+        @re-fresh-component="reFreshComponent"
+      />
       <div style="text-align: end !important;margin: 0 15px 10px !important;">
         <span slot="footer">
           <el-button size="mini" @click="cancelFilter">{{ $t('commons.cancel') }}</el-button>
-          <el-button :disabled="!currentFilterCom.options.attrs.fieldId" type="primary" size="mini" @click="sureFilter">{{ $t('commons.confirm') }}</el-button>
-        </span>
-      </div>
-    </el-dialog>
-
-    <!--文字组件对话框-->
-    <el-dialog
-      v-if="styleDialogVisible && curComponent"
-      :title="$t('panel.style')"
-      :visible.sync="styleDialogVisible"
-      custom-class="de-style-dialog"
-    >
-      <PanelTextEditor v-if="curComponent.type==='v-text'" />
-      <AttrListExtend v-else />
-      <div style="text-align: center">
-        <span slot="footer">
-          <el-button size="mini" @click="closeStyleDialog">{{ $t('commons.confirm') }}</el-button>
+          <el-button :disabled="!enableSureButton" type="primary" size="mini" @click="sureFilter">{{ $t('commons.confirm') }}</el-button>
         </span>
       </div>
     </el-dialog>
 
     <fullscreen style="height: 100%;background: #f7f8fa;overflow-y: auto" :fullscreen.sync="previewVisible">
-      <Preview v-if="previewVisible" :in-screen="!previewVisible" :show-type="canvasStyleData.selfAdaption?'full':'width'" />
+      <Preview
+        v-if="previewVisible"
+        :in-screen="!previewVisible"
+        :panel-info="panelInfo"
+        :show-type="canvasStyleData.selfAdaption?'full':'width'"
+        :canvas-style-data="canvasStyleData"
+        :component-data="componentData"
+      />
     </fullscreen>
-    <input id="input" ref="files" type="file" accept="image/*" hidden @click="e => {e.target.value = '';}" @change="handleFileChange">
+    <input
+      id="input"
+      ref="files"
+      type="file"
+      accept="image/*"
+      hidden
+      @click="e => {e.target.value = '';}"
+      @change="handleFileChange"
+    >
 
     <!--矩形样式组件-->
     <TextAttr v-if="showAttr" :scroll-left="scrollLeft" :scroll-top="scrollTop" />
@@ -194,6 +301,37 @@
       :mounted-init="false"
       @newViewInfo="newViewInfo"
     />
+
+    <!--仪表板外部参数设置组件-->
+    <el-dialog
+      :visible.sync="outerParamsSetVisible"
+      width="900px"
+      class="dialog-css"
+      :show-close="true"
+      :destroy-on-close="true"
+      :append-to-body="true"
+    >
+      <OuterParamsSet v-if="outerParamsSetVisible" @outerParamsSetVisibleChange="outerParamsSetVisibleChange" />
+    </el-dialog>
+
+    <!--复用视图全屏显示框-->
+    <el-dialog
+      :visible="multiplexingShow"
+      :show-close="false"
+      class="dialog-css"
+      :fullscreen="true"
+    >
+      <multiplexing v-if="multiplexingShow" :view-data="viewData" />
+      <div slot="title" class="dialog-footer title-text">
+        <span style="font-size: 14px;">
+          {{ $t('panel.multiplexing') }}
+        </span>
+        <span style="float: right;">
+          <el-button type="primary" size="mini" @click="saveMultiplexing()">{{ $t('commons.confirm') }}</el-button>
+          <el-button size="mini" @click="showMultiplexing(false)">{{ $t('commons.cancel') }}</el-button>
+        </span>
+      </div>
+    </el-dialog>
 
   </el-row>
 </template>
@@ -208,22 +346,21 @@ import ViewSelect from '../ViewSelect'
 import SubjectSetting from '../SubjectSetting'
 import bus from '@/utils/bus'
 import Editor from '@/components/canvas/components/Editor/index'
-import { deepCopy } from '@/components/canvas/utils/utils'
-import componentList, { BASE_MOBILE_STYLE } from '@/components/canvas/custom-component/component-list' // 左侧列表数据
+import { deepCopy, matrixBaseChange } from '@/components/canvas/utils/utils'
+import componentList, {
+  BASE_MOBILE_STYLE,
+  COMMON_BACKGROUND,
+  HYPERLINKS
+} from '@/components/canvas/custom-component/component-list' // 左侧列表数据
 import { mapState } from 'vuex'
 import { uuid } from 'vue-uuid'
 import Toolbar from '@/components/canvas/components/Toolbar'
-import { findOne } from '@/api/panel/panel'
-import { getPanelAllLinkageInfo } from '@/api/panel/linkage'
-import PreviewFullScreen from '@/components/canvas/components/Editor/PreviewFullScreen'
+import { initPanelData, initViewCache, queryPanelMultiplexingViewTree } from '@/api/panel/panel'
 import Preview from '@/components/canvas/components/Editor/Preview'
-import AttrList from '@/components/canvas/components/AttrList'
-import AttrListExtend from '@/components/canvas/components/AttrListExtend'
 import elementResizeDetectorMaker from 'element-resize-detector'
 import AssistComponent from '@/views/panel/AssistComponent'
-import PanelTextEditor from '@/components/canvas/custom-component/PanelTextEditor'
 import ChartGroup from '@/views/chart/group/Group'
-import { searchAdviceSceneId } from '@/api/chart/chart'
+import { chartCopy } from '@/api/chart/chart'
 // 引入样式
 import '@/components/canvas/assets/iconfont/iconfont.css'
 import '@/components/canvas/styles/animate.css'
@@ -232,15 +369,20 @@ import FilterDialog from '../filter/filterDialog'
 import toast from '@/components/canvas/utils/toast'
 import { commonStyle, commonAttr } from '@/components/canvas/custom-component/component-list'
 import generateID from '@/components/canvas/utils/generateID'
-import RectangleAttr from '@/components/canvas/components/RectangleAttr'
 import TextAttr from '@/components/canvas/components/TextAttr'
-import FilterTextAttr from '@/components/canvas/components/FilterTextAttr'
-import { queryPanelJumpInfo } from '@/api/panel/linkJump'
 import ComponentWait from '@/views/panel/edit/ComponentWait'
+import { deleteEnshrine, saveEnshrine, starStatus } from '@/api/panel/enshrine'
+import ChartEdit from '@/views/chart/view/ChartEdit'
+import OuterParamsSet from '@/views/panel/OuterParamsSet/index'
+import ChartStyleBatchSet from '@/views/chart/view/ChartStyleBatchSet'
+import Multiplexing from '@/views/panel/ViewSelect/multiplexing'
 
 export default {
   name: 'PanelEdit',
   components: {
+    Multiplexing,
+    ChartStyleBatchSet,
+    OuterParamsSet,
     ComponentWait,
     DeMainContainer,
     DeContainer,
@@ -251,19 +393,21 @@ export default {
     Toolbar,
     FilterDialog,
     SubjectSetting,
-    PreviewFullScreen,
     Preview,
-    AttrList,
-    AttrListExtend,
     AssistComponent,
-    PanelTextEditor,
-    RectangleAttr,
     TextAttr,
     ChartGroup,
-    FilterTextAttr
+    ChartEdit
   },
   data() {
     return {
+      viewData: [],
+      multiplexingShow: false,
+      asideToolType: 'none',
+      outerParamsSetVisible: false,
+      autoMoveOffSet: 15,
+      mobileEditorShow: true,
+      hasStar: false,
       drawerSize: '300px',
       visible: false,
       show: false,
@@ -293,7 +437,6 @@ export default {
         width: null,
         height: null
       },
-      beforeDialogValue: [],
       styleDialogVisible: false,
       currentDropElement: null,
       adviceGroupId: null,
@@ -309,18 +452,57 @@ export default {
         'de-tabs',
         'rect-shape',
         'de-show-date',
-        'de-video'
-      ]
+        'de-video',
+        'de-stream-media',
+        'de-frame'
+      ],
+      enableSureButton: false,
+      filterFromDrag: false,
+      activeToolsName: 'view',
+      rightDrawOpen: false
     }
   },
 
   computed: {
     // 侧边显示控制
+    chartEditParam() {
+      if (this.curComponent) {
+        if (this.curComponent.type === 'view') {
+          return { 'id': this.curComponent.propValue.viewId, 'optType': 'edit' }
+        } else if (this.curComponent.type === 'de-tabs' && this.$store.state.chart.viewId) {
+          return { 'id': this.$store.state.chart.viewId, 'optType': 'edit' }
+        } else {
+          return {}
+        }
+      }
+      return this.curComponent ? { 'id': this.curComponent.propValue.viewId, 'optType': 'edit' } : {}
+    },
+    // 侧边显示控制
     showAside() {
       return !this.linkageSettingStatus && !this.mobileLayoutStatus
     },
+    // 显示视图工具栏
+    showViewToolsAside() {
+      return !this.batchOptStatus && this.curComponent && (this.curComponent.type === 'view' || this.curComponent.type === 'de-tabs')
+    },
+    showBatchViewToolsAside() {
+      return this.batchOptStatus
+    },
+    showViewToolAsideType() {
+      if (this.curComponent) {
+        if (this.curComponent.type === 'view') {
+          return 'view'
+        } else {
+          return 'publicSet'
+        }
+      } else {
+        return 'none'
+      }
+    },
     showAttr() {
-      if (this.curComponent && this.showAttrComponent.includes(this.curComponent.type)) {
+      if (this.mobileLayoutStatus) {
+        return false
+      } else if (this.curComponent && this.showAttrComponent.includes(this.curComponent.type)) {
         // 过滤组件有标题才显示
         if (this.curComponent.type === 'custom' && !this.curComponent.options.attrs.title) {
           return false
@@ -336,13 +518,32 @@ export default {
         padding: this.componentGap + 'px'
       }
     },
+    mobileCanvasStyle() {
+      let style
+      if (this.canvasStyleData.openCommonStyle) {
+        if (this.canvasStyleData.panel.backgroundType === 'image' && typeof (this.canvasStyleData.panel.imageUrl) === 'string') {
+          style = {
+            background: `url(${this.canvasStyleData.panel.imageUrl}) no-repeat`
+          }
+        } else if (this.canvasStyleData.panel.backgroundType === 'color') {
+          style = {
+            background: this.canvasStyleData.panel.color
+          }
+        } else {
+          style = {
+            background: '#f7f8fa'
+          }
+        }
+      }
+      return style
+    },
     customCanvasStyle() {
       let style = {
         padding: this.componentGap + 'px'
       }
 
       if (this.canvasStyleData.openCommonStyle) {
-        if (this.canvasStyleData.panel.backgroundType === 'image' && this.canvasStyleData.panel.imageUrl) {
+        if (this.canvasStyleData.panel.backgroundType === 'image' && typeof (this.canvasStyleData.panel.imageUrl) === 'string') {
           style = {
             background: `url(${this.canvasStyleData.panel.imageUrl}) no-repeat`,
             ...style
@@ -359,6 +560,19 @@ export default {
     panelInfo() {
       return this.$store.state.panel.panelInfo
     },
+    pcMatrixCountBase() {
+      if (this.canvasStyleData.aidedDesign) {
+        return {
+          x: this.pcMatrixCount.x * this.canvasStyleData.aidedDesign.matrixBase,
+          y: this.pcMatrixCount.y * this.canvasStyleData.aidedDesign.matrixBase
+        }
+      } else {
+        return this.pcMatrixCount
+      }
+    },
+    multiplexingDisabled() {
+      return Object.keys(this.curMultiplexingComponents) === 0
+    },
     ...mapState([
       'curComponent',
       'curCanvasScale',
@@ -372,7 +586,10 @@ export default {
       'mobileLayoutStatus',
       'pcMatrixCount',
       'mobileMatrixCount',
-      'mobileLayoutStyle'
+      'mobileLayoutStyle',
+      'scrollAutoMove',
+      'batchOptStatus',
+      'curMultiplexingComponents'
     ])
   },
 
@@ -387,9 +604,6 @@ export default {
         removeClass(document.body, 'showRightPanel')
       }
     },
-    panelInfo(newVal, oldVal) {
-      this.init(newVal.id)
-    },
     '$store.state.styleChangeTimes'() {
       if (this.$store.state.styleChangeTimes > 0) {
         this.destroyTimeMachine()
@@ -402,12 +616,6 @@ export default {
   },
   created() {
     this.init(this.$store.state.panel.panelInfo.id)
-    // this.restore()
-    // 全局监听按键事件
-    // listenGlobalKeyDown()
-
-    this.$store.commit('setCurComponent', { component: null, index: null })
-    this.$store.commit('clearLinkageSettingInfo', false)
   },
   mounted() {
     // this.insertToBody()
@@ -425,6 +633,10 @@ export default {
     bus.$on('previewFullScreenClose', () => {
       this.previewVisible = false
     })
+
+    bus.$on('change_panel_right_draw', (param) => {
+      this.changeRightDrawOpen(param)
+    })
     const _this = this
     const erd = elementResizeDetectorMaker()
     // 监听div变动事件
@@ -433,71 +645,69 @@ export default {
         _this.restore()
       })
     })
+    this.loadMultiplexingViewTree()
   },
   beforeDestroy() {
     const elx = this.$refs.rightPanel
     elx && elx.remove()
   },
   methods: {
+    loadMultiplexingViewTree() {
+      queryPanelMultiplexingViewTree().then(res => {
+        this.viewData = res.data
+      })
+    },
+    closeOuterParamsSetDialog() {
+      this.outerParamsSetVisible = false
+    },
+    changeRightDrawOpen(param) {
+      if (!param) {
+        this.$store.dispatch('chart/setViewId', null)
+      }
+      this.rightDrawOpen = param
+      if (this.rightDrawOpen) {
+        setTimeout(() => {
+          this.outStyle.width = this.outStyle.width + 0.000001
+        }, 0)
+      }
+    },
     init(panelId) {
-      // 如果临时画布有数据 则使用临时画布数据（视图编辑的时候 会保存临时画布数据）
-      const componentDataTemp = this.$store.state.panel.componentDataTemp
-      const canvasStyleDataTemp = this.$store.state.panel.canvasStyleDataTemp
-      if (componentDataTemp && canvasStyleDataTemp) {
-        const componentDatas = JSON.parse(componentDataTemp)
-        componentDatas.forEach(item => {
-          item.filters = (item.filters || [])
-          item.linkageFilters = (item.linkageFilters || [])
-          item.auxiliaryMatrix = (item.auxiliaryMatrix || false)
-          item.x = (item.x || 1)
-          item.y = (item.y || 1)
-          item.sizex = (item.sizex || 5)
-          item.sizey = (item.sizey || 5)
-        })
-        this.$store.commit('setComponentData', this.resetID(componentDatas))
-        const temp = JSON.parse(canvasStyleDataTemp)
-        temp.refreshTime = (temp.refreshTime || 5)
-        temp.refreshViewLoading = (temp.refreshViewLoading || false)
-        temp.refreshUnit = (temp.refreshUnit || 'minute')
-
-        this.$store.commit('setCanvasStyle', temp)
-        // 清空临时画布数据
-        this.$store.dispatch('panel/setComponentDataTemp', null)
-        this.$store.dispatch('panel/setCanvasStyleDataTemp', null)
-      } else if (panelId) {
-        findOne(panelId).then(response => {
-          const componentDatas = JSON.parse(response.data.panelData)
-          const mobileComponentData = response.data.panelDataMobile ? JSON.parse(response.data.panelDataMobile) : []
-          componentDatas.forEach(item => {
-            item.filters = (item.filters || [])
-            item.linkageFilters = (item.linkageFilters || [])
-            item.auxiliaryMatrix = (item.auxiliaryMatrix || false)
-            item.x = (item.x || 1)
-            item.y = (item.y || 1)
-            item.sizex = (item.sizex || 5)
-            item.sizey = (item.sizey || 5)
-            item.mobileSelected = (item.mobileSelected || false)
-            item.mobileStyle = (item.mobileStyle || deepCopy(BASE_MOBILE_STYLE))
-          })
-          this.$store.commit('setComponentData', this.resetID(componentDatas))
-          this.$store.commit('setMobileComponentData', this.resetID(mobileComponentData))
-          const panelStyle = JSON.parse(response.data.panelStyle)
-          panelStyle.refreshTime = (panelStyle.refreshTime || 5)
-          panelStyle.refreshViewLoading = (panelStyle.refreshViewLoading || false)
-          panelStyle.refreshUnit = (panelStyle.refreshUnit || 'minute')
-
-          this.$store.commit('setCanvasStyle', panelStyle)
-          this.$store.commit('recordSnapshot', 'init')// 记录快照
-          // 刷新联动信息
-          getPanelAllLinkageInfo(panelId).then(rsp => {
-            this.$store.commit('setNowPanelTrackInfo', rsp.data)
-          })
-          // 刷新跳转信息
-          queryPanelJumpInfo(panelId).then(rsp => {
-            this.$store.commit('setNowPanelJumpInfo', rsp.data)
-          })
+      const _this = this
+      _this.initHasStar()
+      this.$store.commit('initCanvas')
+      if (panelId) {
+        initPanelData(panelId, function() {
+          // 初始化视图缓存
+          initViewCache(panelId)
+          // 初始化记录的视图信息
+          _this.$store.commit('setComponentViewsData')
+          // 初始化保存状态
+          setTimeout(() => {
+            _this.$store.commit('refreshSaveStatus')
+          }, 500)
         })
       }
+    },
+    star() {
+      this.panelInfo && saveEnshrine(this.panelInfo.id, false).then(res => {
+        this.hasStar = true
+      })
+    },
+    unstar() {
+      this.panelInfo && deleteEnshrine(this.panelInfo.id, false).then(res => {
+        this.hasStar = false
+      })
+    },
+    initHasStar() {
+      this.panelInfo && this.panelInfo.id && starStatus(this.panelInfo.id, false).then(res => {
+        this.hasStar = res.data
+      })
+    },
+    mobileRefresh() {
+      this.mobileEditorShow = false
+      this.$nextTick(() => {
+        this.mobileEditorShow = true
+      })
     },
     save() {
 
@@ -599,10 +809,13 @@ export default {
         }
         this.currentFilterCom.id = newComponentId
         this.currentFilterCom.auxiliaryMatrix = this.canvasStyleData.auxiliaryMatrix
+        this.currentFilterCom.mobileStyle = deepCopy(BASE_MOBILE_STYLE)
+        this.currentFilterCom['hyperlinks'] = deepCopy(HYPERLINKS)
+        this.currentFilterCom.commonBackground = this.currentFilterCom.commonBackground || deepCopy(COMMON_BACKGROUND)
 
         if (this.currentWidget.filterDialog) {
           this.show = false
-          this.openFilterDialog()
+          this.openFilterDialog(true)
           return
         }
         component = deepCopy(this.currentFilterCom)
@@ -627,8 +840,20 @@ export default {
       component.id = newComponentId
       // 新拖入的组件矩阵状态 和仪表板当前的矩阵状态 保持一致
       component.auxiliaryMatrix = this.canvasStyleData.auxiliaryMatrix
-      this.$store.commit('addComponent', { component })
-      this.$store.commit('recordSnapshot', 'handleDrop')
+      // 统一设置背景信息
+      component.commonBackground = component.commonBackground || deepCopy(COMMON_BACKGROUND)
+
+      // 视图统一调整为复制
+      if (componentInfo.type === 'view') {
+        chartCopy(component.propValue.viewId, this.panelInfo.id).then(res => {
+          component.propValue.viewId = res.data
+          this.$store.commit('addComponent', { component })
+          this.$store.commit('recordSnapshot', 'handleDrop')
+        })
+      } else {
+        this.$store.commit('addComponent', { component })
+        this.$store.commit('recordSnapshot', 'handleDrop')
+      }
       this.clearCurrentInfo()
     },
     clearCurrentInfo() {
@@ -650,24 +875,27 @@ export default {
         this.$store.commit('hideContextMenu')
       }
     },
-    openFilterDialog() {
-      this.beforeDialogValue = []
+    openFilterDialog(fromDrag = false) {
+      this.filterFromDrag = fromDrag
       this.filterVisible = true
     },
     closeFilter() {
-      this.beforeDialogValue = []
       this.filterVisible = false
       this.currentWidget = null
       this.clearCurrentInfo()
     },
     cancelFilter() {
       this.closeFilter()
-      bus.$emit('onRemoveLastItem')
+      if (this.filterFromDrag) {
+        bus.$emit('onRemoveLastItem')
+      }
     },
     sureFilter() {
-      this.currentFilterCom.options.value = []
+      this.currentFilterCom = this.$refs['filter-setting-' + this.currentFilterCom.id].getElementInfo()
       this.$store.commit('setComponentWithId', this.currentFilterCom)
       this.$store.commit('recordSnapshot', 'sureFilter')
+      this.$store.commit('setCurComponent', { component: this.currentFilterCom, index: this.curComponentIndex })
+      bus.$emit('reset-default-value', this.currentFilterCom.id)
       this.closeFilter()
     },
     reFreshComponent(component) {
@@ -678,19 +906,21 @@ export default {
       if (this.curComponent && this.curComponent.serviceName) {
         const serviceName = this.curComponent.serviceName
         this.currentWidget = ApplicationContext.getService(serviceName)
+        this.currentFilterCom = this.curComponent
+        this.openFilterDialog()
       }
-      this.currentFilterCom = this.curComponent
-      this.openFilterDialog()
     },
     closeLeftPanel() {
       this.show = false
-      // this.beforeDestroy()
     },
     previewFullScreen() {
       this.previewVisible = true
     },
     changeAidedDesign() {
       this.aidedButtonActive = !this.aidedButtonActive
+    },
+    outerParamsSetVisibleChange(param) {
+      this.outerParamsSetVisible = param
     },
     getOriginStyle(value) {
       const scale = this.canvasStyleData.scale
@@ -735,31 +965,22 @@ export default {
             type: 'picture-add',
             label: '图片',
             icon: '',
+            hyperlinks: HYPERLINKS,
+            mobileStyle: BASE_MOBILE_STYLE,
             propValue: fileResult,
+            commonBackground: deepCopy(COMMON_BACKGROUND),
             style: {
               ...commonStyle
             }
           }
-          component.auxiliaryMatrix = _this.canvasStyleData.auxiliaryMatrix
-          if (_this.canvasStyleData.auxiliaryMatrix) {
-            component.x = _this.dropComponentInfo.x
-            component.y = _this.dropComponentInfo.y
-            component.sizex = _this.dropComponentInfo.sizex
-            component.sizey = _this.dropComponentInfo.sizey
-            component.style.left = (_this.dropComponentInfo.x - 1) * _this.curCanvasScale.matrixStyleOriginWidth
-            component.style.top = (_this.dropComponentInfo.y - 1) * _this.curCanvasScale.matrixStyleOriginHeight
-            component.style.width = _this.dropComponentInfo.sizex * _this.curCanvasScale.matrixStyleOriginWidth
-            component.style.height = _this.dropComponentInfo.sizey * _this.curCanvasScale.matrixStyleOriginHeight
-          } else {
-            component.style.top = _this.dropComponentInfo.shadowStyle.y
-            component.style.left = _this.dropComponentInfo.shadowStyle.x
-            component.style.width = _this.dropComponentInfo.shadowStyle.width
-            component.style.height = _this.dropComponentInfo.shadowStyle.height
-          }
+          component.auxiliaryMatrix = false
+          component.style.top = _this.dropComponentInfo.shadowStyle.y
+          component.style.left = _this.dropComponentInfo.shadowStyle.x
+          component.style.width = _this.dropComponentInfo.shadowStyle.width
+          component.style.height = _this.dropComponentInfo.shadowStyle.height
           this.$store.commit('addComponent', {
             component: component
           })
-
           this.$store.commit('recordSnapshot', 'handleFileChange')
         }
 
@@ -783,12 +1004,9 @@ export default {
       }
     },
     newChart() {
-      this.adviceGroupId = null
+      this.adviceGroupId = this.panelInfo.id
       this.show = false
-      searchAdviceSceneId(this.panelInfo.id).then(res => {
-        this.adviceGroupId = res.data
-        this.$refs['chartGroup'].selectTable()
-      })
+      this.$refs['chartGroup'].selectTable()
     },
     newViewInfo(newViewInfo) {
       let component
@@ -796,7 +1014,7 @@ export default {
       // 用户视图设置 复制一个模板
       componentList.forEach(componentTemp => {
         if (componentTemp.type === 'view') {
-          component = deepCopy(componentTemp)
+          component = matrixBaseChange(deepCopy(componentTemp))
           const propValue = {
             id: newComponentId,
             viewId: newViewInfo.id
@@ -821,23 +1039,33 @@ export default {
         component.y = 1
       }
       component.id = newComponentId
+      // 统一设置背景信息
+      component.commonBackground = deepCopy(COMMON_BACKGROUND)
       this.$store.commit('addComponent', { component })
       this.$store.commit('recordSnapshot', 'newViewInfo')
       this.clearCurrentInfo()
       this.$store.commit('setCurComponent', { component: component, index: this.componentData.length - 1 })
 
-      // 编辑时临时保存 当前修改的画布
-      this.$store.dispatch('panel/setComponentDataTemp', JSON.stringify(this.componentData))
-      this.$store.dispatch('panel/setCanvasStyleDataTemp', JSON.stringify(this.canvasStyleData))
-      if (this.curComponent.type === 'view') {
-        this.$store.dispatch('chart/setViewId', null)
-        this.$store.dispatch('chart/setViewId', this.curComponent.propValue.viewId)
-        bus.$emit('PanelSwitchComponent', { name: 'ChartEdit', param: { 'id': this.curComponent.propValue.viewId, 'optType': 'edit' }})
-      }
+      // 打开属性栏
+      bus.$emit('change_panel_right_draw', true)
+
+      //
+      // // 编辑时临时保存 当前修改的画布
+      // this.$store.dispatch('panel/setComponentDataTemp', JSON.stringify(this.componentData))
+      // this.$store.dispatch('panel/setCanvasStyleDataTemp', JSON.stringify(this.canvasStyleData))
+      // if (this.curComponent.type === 'view') {
+      //   this.$store.dispatch('chart/setViewId', null)
+      //   this.$store.dispatch('chart/setViewId', this.curComponent.propValue.viewId)
+      //   bus.$emit('PanelSwitchComponent', {
+      //     name: 'ChartEdit',
+      //     param: { 'id': this.curComponent.propValue.viewId, 'optType': 'edit' }
+      //   })
+      // }
     },
     canvasScroll(event) {
       this.scrollLeft = event.target.scrollLeft
       this.scrollTop = event.target.scrollTop
+      bus.$emit('onScroll')
     },
     destroyTimeMachine() {
       this.timeMachine && clearTimeout(this.timeMachine)
@@ -846,18 +1074,57 @@ export default {
 
     // 如果内部样式有变化 1秒钟后保存一个镜像
     recordStyleChange(index) {
-      this.timeMachine = setTimeout(() => {
-        if (index === this.$store.state.styleChangeTimes) {
-          this.$store.commit('recordSnapshot', 'recordStyleChange')
+      if (index === this.$store.state.styleChangeTimes) {
+        this.timeMachine = setTimeout(() => {
+          this.$store.commit('recordSnapshot')
           this.$store.state.styleChangeTimes = 0
-        }
-        this.destroyTimeMachine()
-      }, 1000)
+          this.destroyTimeMachine()
+        }, 1000)
+      }
     },
     handleDragOver(e) {
       e.preventDefault()
       e.dataTransfer.dropEffect = 'copy'
       this.$refs.canvasEditor.handleDragOver(e)
+    },
+    sureStatusChange(status) {
+      this.enableSureButton = status
+    },
+    canvasDragging(mY, offsetY) {
+      if (this.curComponent && this.curComponent.optStatus.dragging) {
+        // 触发滚动的区域偏移量
+        const touchOffset = 100
+        const canvasInfoMobile = document.getElementById('canvasInfoMobile')
+        // 获取子盒子（高度肯定比父盒子大）
+        // const editorMobile = document.getElementById('editorMobile')
+        // 画布区顶部到浏览器顶部距离
+        const canvasTop = canvasInfoMobile.offsetTop + 75
+        // 画布区有高度
+        const canvasHeight = canvasInfoMobile.offsetHeight
+        // 画布区域底部距离浏览器顶部距离
+        const canvasBottom = canvasTop + canvasHeight
+        if (mY > (canvasBottom - touchOffset) && offsetY > 0) {
+          // 触发底部滚动
+          this.scrollMove(this.autoMoveOffSet)
+        } else if (mY < (canvasTop + touchOffset) && offsetY < 0) {
+          // 触发顶部滚动
+          this.scrollMove(-this.autoMoveOffSet)
+        }
+      }
+    },
+    scrollMove(offset) {
+      const canvasInfoMobile = document.getElementById('canvasInfoMobile')
+      canvasInfoMobile.scrollTop = canvasInfoMobile.scrollTop + offset
+      this.$store.commit('setScrollAutoMove', this.scrollAutoMove + offset)
+    },
+    showMultiplexing(type) {
+      this.multiplexingShow = type
+    },
+    saveMultiplexing() {
+      this.showMultiplexing(false)
+      this.$store.commit('copyMultiplexingComponents')
+      this.$store.commit('recordSnapshot')
+      this.$store.state.styleChangeTimes++
     }
   }
 }
@@ -880,189 +1147,261 @@ export default {
     border-bottom: 1px solid #E6E6E6;
 
   }
+
   .blackTheme .de-header {
-      background-color: var(--SiderBG) !important;
-      color: var(--TextActive);
+    background-color: var(--SiderBG) !important;
+    color: var(--TextActive);
   }
 
   .showLeftPanel {
-  overflow: hidden;
-  position: relative;
-  width: 100%;
-}
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+  }
 </style>
 
 <style lang="scss" scoped>
-.leftPanel-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  opacity: 0;
-  transition: opacity .3s cubic-bezier(.7, .3, .1, 1);
-  background: rgba(0, 0, 0, .2);
-  z-index: -1;
-}
-
-.leftPanel {
-  width: 100%;
-  max-width: 300px;
-  height: calc(100vh - 35px);
-  position: fixed;
-  top: 91px;
-  left: 60px;
-  box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, .05);
-  transition: all .25s cubic-bezier(.7, .3, .1, 1);
-  transform: translate(100%);
-  background: var(--SiderBG, #fff);
-  z-index: 1003;
-}
-
-.show {
-  transition: all .3s cubic-bezier(.7, .3, .1, 1);
-
   .leftPanel-background {
-    z-index: 1002;
-    opacity: 1;
-    width: 100%;
-    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    transition: opacity .3s cubic-bezier(.7, .3, .1, 1);
+    background: rgba(0, 0, 0, .2);
+    z-index: -1;
   }
 
   .leftPanel {
-    transform: translate(0);
+    width: 100%;
+    max-width: 300px;
+    height: calc(100vh - 35px);
+    position: fixed;
+    top: 91px;
+    left: 60px;
+    box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, .05);
+    transition: all .25s cubic-bezier(.7, .3, .1, 1);
+    transform: translate(100%);
+    background: var(--SiderBG, #fff);
+    z-index: 1003;
   }
-}
 
-.mobile_canvas_main{
-  width: 80%;
-  height: 90%;
-  margin-left: 10%;
-  margin-top: 3%;
-}
+  .show {
+    transition: all .3s cubic-bezier(.7, .3, .1, 1);
 
-.this_mobile_canvas{
-  border-radius:30px;
-  min-width: 280px;
-  max-width: 300px;
-  min-height: 700px;
-  max-height: 750px;
-  overflow: hidden;
-  background-color: #000000;
-  background-size:100% 100% !important;
-}
+    .leftPanel-background {
+      z-index: 1002;
+      opacity: 1;
+      width: 100%;
+      height: 100%;
+    }
 
-.this_mobile_canvas_top{
-  height: 30px;
-  width: 100%;
-}
-
-.this_mobile_canvas_bottom{
-  height: 30px;
-  width: 100%;
-}
-
-.this_mobile_canvas_main{
-  overflow-x: hidden;
-  overflow-y: auto;
-  height:  calc(100% - 60px);;
-  background-color: #d7d9e3;
-  background-size:100% 100% !important;
-}
-
-.this_mobile_canvas_cell{
-  text-align: center;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.this_canvas{
-  width: 100%;
-  height: calc(100vh - 35px);
-  overflow-x: hidden;
-  overflow-y: auto;
-  background-size:100% 100% !important;
-}
-.el-main{
-  height: calc(100vh - 35px);
-  padding: 0!important;
-  overflow: auto;
-  position: relative;
-}
-
-.el-main ::v-deep .el-drawer__wrapper{
-  width: 310px!important;
-}
-.el-main ::v-deep .el-drawer__body{
-  overflow-y: auto;
-}
-.button-show{
-    background-color: var(--ContentBG, #ebf2fe)!important;
-}
-
-.button-closed{
-  background-color: var(--SiderBG, #ffffff)!important;
-}
-.style-aside{
-  width: 250px;
-  max-width:250px!important;
-  border: 1px solid var(--TableBorderColor, #E6E6E6);
-  padding: 10px;
-  transition: all 0.3s;
-
-}
-.placeholder{
-  font-size: 14px;
-  color: gray;
-}
-.show {
-  transform: translateX(0);
-}
-
-.hidden {
-  transform: translateX(100%);
-}
-
-.style-edit-dialog {
-  width: 300px!important;
-  height: 400px!important;
-
-  .el-dialog__header{
-    padding: 10px 20px !important;
-
-    .el-dialog__headerbtn {
-      top: 15px !important;
+    .leftPanel {
+      transform: translate(0);
     }
   }
-  .el-dialog__body{
-    padding: 1px 15px !important;
+
+  .mobile_canvas_main {
+    width: 80%;
+    height: 90%;
+    margin-left: 10%;
+    margin-top: 3%;
   }
-}
-.style-hidden{
-  overflow-x: hidden;
-}
-.button-text {
+
+  .this_mobile_canvas {
+    border-radius: 30px;
+    min-width: 300px;
+    max-width: 350px;
+    min-height: 600px;
+    max-height: 700px;
+    overflow: hidden;
+    background-color: #000000;
+    background-size: 100% 100% !important;
+  }
+
+  .this_mobile_canvas_inner_top {
+    vertical-align: middle;
+    text-align: center;
+    background-color: #f7f8fa;
+    height: 30px;
+    line-height: 30px;
+    font-size: 14px;
+    width: 100%;
+  }
+
+  .this_mobile_canvas_top {
+    height: 30px;
+    width: 100%;
+  }
+
+  .this_mobile_canvas_inner_bottom {
+    background-color: #f7f8fa;
+    line-height: 30px;
+    vertical-align: middle;
+    color: gray;
+    height: 30px;
+    width: 100%;
+  }
+
+  .this_mobile_canvas_bottom {
+    height: 30px;
+    width: 100%;
+  }
+
+  .this_mobile_canvas_main {
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: calc(100% - 120px);;
+    background-color: #d7d9e3;
+    background-size: 100% 100% !important;
+  }
+
+  .this_mobile_canvas_cell {
+    text-align: center;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .this_mobile_canvas_wait_cell {
+    background-size: 100% 100% !important;
+    border: 2px solid #9ea6b2
+  }
+
+  .this_canvas {
+    width: 100%;
+    height: calc(100vh - 35px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-size: 100% 100% !important;
+  }
+
+  .el-main {
+    height: calc(100vh - 35px);
+    padding: 0 !important;
+    overflow: auto;
+    position: relative;
+  }
+
+  .el-main ::v-deep .el-drawer__wrapper {
+    width: 310px !important;
+  }
+
+  .el-main ::v-deep .el-drawer__body {
+    overflow-y: auto;
+  }
+
+  .button-show {
+    background-color: var(--ContentBG, #ebf2fe) !important;
+  }
+
+  .button-closed {
+    background-color: var(--SiderBG, #ffffff) !important;
+  }
+
+  .style-aside {
+    width: 250px;
+    max-width: 250px !important;
+    border: 1px solid var(--TableBorderColor, #E6E6E6);
+    padding: 10px;
+    transition: all 0.3s;
+
+  }
+
+  .placeholder {
+    font-size: 14px;
+    color: gray;
+  }
+
+  .show {
+    transform: translateX(0);
+  }
+
+  .hidden {
+    transform: translateX(100%);
+  }
+
+  .style-edit-dialog {
+    width: 300px !important;
+    height: 400px !important;
+
+    .el-dialog__header {
+      padding: 10px 20px !important;
+
+      .el-dialog__headerbtn {
+        top: 15px !important;
+      }
+    }
+
+    .el-dialog__body {
+      padding: 1px 15px !important;
+    }
+  }
+
+  .style-hidden {
+    overflow-x: hidden;
+  }
+
+  .button-text {
     color: var(--TextActive);
-}
-  .mobile-canvas{
+  }
+
+  .mobile-canvas {
     width: 300px;
     height: 600px;
   }
 
-.info-class{
-  text-align: center;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #FFFFFF;
-  font-size: 12px;
-  color: #9ea6b2;
-}
+  .info-class {
+    text-align: center;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #FFFFFF;
+    font-size: 12px;
+    color: #9ea6b2;
+  }
 
-::-webkit-scrollbar {
-  width: 2px!important;
-  height: 2px!important;
-}
+  ::-webkit-scrollbar {
+    width: 2px !important;
+    height: 2px !important;
+  }
 
+  .tools-window-main {
+    width: 350px;
+    background-color: #FFFFFF;
+    transition: 1s;
+  }
+
+  .tools-window-tabs {
+    height: calc(100vh - 100px);
+    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  > > > .el-tabs__item {
+    padding: 0 15px;
+  }
+  .view-selected-message-class {
+    font-size: 12px;
+    color: #9ea6b2;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh - 100px);
+  }
+
+  .dialog-css ::v-deep .el-dialog__title {
+    font-size: 14px;
+  }
+
+  .dialog-css ::v-deep .el-dialog__header {
+    padding: 20px 20px 0;
+  }
+
+  .dialog-css ::v-deep .el-dialog__body {
+    padding: 10px 20px 20px;
+  }
 </style>

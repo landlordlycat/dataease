@@ -1,16 +1,15 @@
 package io.dataease.service.system;
 
-import io.dataease.base.domain.FileMetadata;
-import io.dataease.base.domain.SystemParameter;
-import io.dataease.base.domain.SystemParameterExample;
-import io.dataease.base.mapper.SystemParameterMapper;
-import io.dataease.base.mapper.ext.ExtSystemParameterMapper;
 import io.dataease.commons.constants.ParamConstants;
 import io.dataease.commons.exception.DEException;
 import io.dataease.commons.utils.BeanUtils;
 import io.dataease.commons.utils.EncryptUtils;
 import io.dataease.controller.sys.response.BasicInfo;
 import io.dataease.dto.SystemParameterDTO;
+import io.dataease.plugins.common.base.domain.FileMetadata;
+import io.dataease.plugins.common.base.domain.SystemParameter;
+import io.dataease.plugins.common.base.domain.SystemParameterExample;
+import io.dataease.plugins.common.base.mapper.SystemParameterMapper;
 import io.dataease.service.FileService;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -23,11 +22,13 @@ import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import io.dataease.ext.*;
 
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class SystemParameterService {
 
+    private final static String LOGIN_TYPE_KEY = "basic.loginType";
     @Resource
     private SystemParameterMapper systemParameterMapper;
     @Resource
@@ -41,7 +42,10 @@ public class SystemParameterService {
 
     public BasicInfo basicInfo() {
         List<SystemParameter> paramList = this.getParamList("basic");
+        List<SystemParameter> homePageList = this.getParamList("ui.openHomePage");
+        paramList.addAll(homePageList);
         BasicInfo result = new BasicInfo();
+        result.setOpenHomePage("true");
         if (!CollectionUtils.isEmpty(paramList)) {
             for (SystemParameter param : paramList) {
                 if (StringUtils.equals(param.getParamKey(), ParamConstants.BASIC.FRONT_TIME_OUT.getValue())) {
@@ -49,6 +53,14 @@ public class SystemParameterService {
                 }
                 if (StringUtils.equals(param.getParamKey(), ParamConstants.BASIC.MSG_TIME_OUT.getValue())) {
                     result.setMsgTimeOut(param.getParamValue());
+                }
+                if (StringUtils.equals(param.getParamKey(), ParamConstants.BASIC.DEFAULT_LOGIN_TYPE.getValue())) {
+                    String paramValue = param.getParamValue();
+                    result.setLoginType(StringUtils.isNotBlank(paramValue) ? Integer.parseInt(paramValue) : 0);
+                }
+                if (StringUtils.equals(param.getParamKey(), ParamConstants.BASIC.OPEN_HOME_PAGE.getValue())) {
+                    boolean open = StringUtils.equals("true", param.getParamValue());
+                    result.setOpenHomePage(open ? "true" : "false");
                 }
             }
         }
@@ -119,6 +131,11 @@ public class SystemParameterService {
         return param.getParamValue();
     }
 
+    public Integer defaultLoginType() {
+        String value = getValue(LOGIN_TYPE_KEY);
+        return StringUtils.isNotBlank(value) ? Integer.parseInt(value) : 0;
+    }
+
     public List<SystemParameterDTO> getSystemParameterInfo(String paramConstantsType) {
         List<SystemParameter> paramList = this.getParamList(paramConstantsType);
         List<SystemParameterDTO> dtoList = new ArrayList<>();
@@ -137,12 +154,13 @@ public class SystemParameterService {
         return dtoList;
     }
 
-    public void saveUIInfo(Map<String, List<SystemParameterDTO>> request, List<MultipartFile> bodyFiles) throws IOException {
+    public void saveUIInfo(Map<String, List<SystemParameterDTO>> request, List<MultipartFile> bodyFiles)
+            throws IOException {
         List<SystemParameterDTO> parameters = request.get("systemParams");
         if (null != bodyFiles)
             for (MultipartFile multipartFile : bodyFiles) {
                 if (!multipartFile.isEmpty()) {
-                    //防止添加非图片文件
+                    // 防止添加非图片文件
                     try (InputStream input = multipartFile.getInputStream()) {
                         try {
                             // It's an image (only BMP, GIF, JPG and PNG are recognized).
@@ -154,10 +172,12 @@ public class SystemParameterService {
                     }
                     String multipartFileName = multipartFile.getOriginalFilename();
                     String[] split = Objects.requireNonNull(multipartFileName).split(",");
-                    parameters.stream().filter(systemParameterDTO -> systemParameterDTO.getParamKey().equalsIgnoreCase(split[1])).forEach(systemParameterDTO -> {
-                        systemParameterDTO.setFileName(split[0]);
-                        systemParameterDTO.setFile(multipartFile);
-                    });
+                    parameters.stream()
+                            .filter(systemParameterDTO -> systemParameterDTO.getParamKey().equalsIgnoreCase(split[1]))
+                            .forEach(systemParameterDTO -> {
+                                systemParameterDTO.setFileName(split[0]);
+                                systemParameterDTO.setFile(multipartFile);
+                            });
                 }
             }
         for (SystemParameterDTO systemParameter : parameters) {
@@ -168,7 +188,8 @@ public class SystemParameterService {
                 }
                 if (file != null) {
                     fileService.deleteFileById(systemParameter.getParamValue());
-                    FileMetadata fileMetadata = fileService.saveFile(systemParameter.getFile(), systemParameter.getFileName());
+                    FileMetadata fileMetadata = fileService.saveFile(systemParameter.getFile(),
+                            systemParameter.getFileName());
                     systemParameter.setParamValue(fileMetadata.getId());
                 }
                 if (file == null && systemParameter.getFileName() == null) {
@@ -180,6 +201,5 @@ public class SystemParameterService {
         }
 
     }
-
 
 }

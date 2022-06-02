@@ -87,17 +87,21 @@
                               <svg-icon icon-class="ds-sql" class="ds-icon-sql" />
                               {{ $t('dataset.sql_data') }}
                             </el-dropdown-item>
-                            <el-dropdown-item :command="beforeClickAddData('excel',data)" :disabled="!kettleRunning">
+                            <el-dropdown-item :command="beforeClickAddData('excel',data)" :disabled="!kettleRunning && engineMode!=='simple'">
                               <svg-icon icon-class="ds-excel" class="ds-icon-excel" />
                               {{ $t('dataset.excel_data') }}
                             </el-dropdown-item>
-                            <el-dropdown-item :command="beforeClickAddData('custom',data)">
+                            <el-dropdown-item v-show="!hideCustomDs" :command="beforeClickAddData('custom',data)">
                               <svg-icon icon-class="ds-custom" class="ds-icon-custom" />
                               {{ $t('dataset.custom_data') }}
                             </el-dropdown-item>
                             <el-dropdown-item :command="beforeClickAddData('union',data)">
                               <svg-icon icon-class="ds-union" class="ds-icon-union" />
                               {{ $t('dataset.union_data') }}
+                            </el-dropdown-item>
+                            <el-dropdown-item :command="beforeClickAddData('api',data)">
+                              <svg-icon icon-class="ds-api" class="ds-icon-api" />
+                              {{ $t('dataset.api_data') }}
                             </el-dropdown-item>
                           </el-dropdown-menu>
                         </el-dropdown>
@@ -137,6 +141,7 @@
                   <svg-icon v-if="data.modelInnerType === 'excel'" icon-class="ds-excel" class="ds-icon-excel" />
                   <svg-icon v-if="data.modelInnerType === 'custom'" icon-class="ds-custom" class="ds-icon-custom" />
                   <svg-icon v-if="data.modelInnerType === 'union'" icon-class="ds-union" class="ds-icon-union" />
+                  <svg-icon v-if="data.modelInnerType === 'api'" icon-class="ds-api" class="ds-icon-api" />
                 </span>
                 <span v-if="data.modelInnerType === 'db' || data.modelInnerType === 'sql'">
                   <span v-if="data.mode === 0" style="margin-left: 6px"><i class="el-icon-s-operation" /></span>
@@ -174,7 +179,7 @@
       </el-col>
 
       <el-dialog v-dialogDrag :title="dialogTitle" :visible="editGroup" :show-close="false" width="30%">
-        <el-form ref="groupForm" :model="groupForm" :rules="groupFormRules" @keypress.enter.native="saveGroup(groupForm)">
+        <el-form ref="groupForm" :model="groupForm" :rules="groupFormRules" @submit.native.prevent @keypress.enter.native="saveGroup(groupForm)">
           <el-form-item :label="$t('commons.name')" prop="name">
             <el-input v-model="groupForm.name" />
           </el-form-item>
@@ -188,7 +193,7 @@
     </el-col>
 
     <el-dialog v-dialogDrag :title="$t('dataset.table')" :visible="editTable" :show-close="false" width="30%">
-      <el-form ref="tableForm" :model="tableForm" :rules="tableFormRules" @keypress.enter.native="saveTable(tableForm)">
+      <el-form ref="tableForm" :model="tableForm" :rules="tableFormRules" @submit.native.prevent @keypress.enter.native="saveTable(tableForm)">
         <el-form-item :label="$t('commons.name')" prop="name">
           <el-input v-model="tableForm.name" />
         </el-form-item>
@@ -227,6 +232,7 @@ import { loadTable, getScene, addGroup, delGroup, delTable, post, isKettleRunnin
 import GroupMoveSelector from './GroupMoveSelector'
 import DsMoveSelector from './DsMoveSelector'
 import { queryAuthModel } from '@/api/authModel/authModel'
+import { engineMode } from '@/api/system/engine'
 
 export default {
   name: 'Group',
@@ -299,6 +305,7 @@ export default {
       },
       isTreeSearch: false,
       kettleRunning: false,
+      engineMode: 'local',
       searchPids: [], // 查询命中的pid
       filterText: '',
       searchType: 'all',
@@ -309,6 +316,9 @@ export default {
     }
   },
   computed: {
+    hideCustomDs: function() {
+      return this.$store.getters.hideCustomDs
+    }
   },
   watch: {
     saveStatus() {
@@ -325,6 +335,9 @@ export default {
   },
   created() {
     this.kettleState()
+    engineMode().then(res => {
+      this.engineMode = res.data
+    })
   },
   mounted() {
     this.treeNode(true)
@@ -423,6 +436,7 @@ export default {
       this.$refs['tableForm'].validate((valid) => {
         if (valid) {
           table.isRename = true
+          table.sceneId = table.pid
           alter(table).then(response => {
             this.closeTable()
             this.$message({
@@ -433,7 +447,7 @@ export default {
             _this.expandedArray.push(table.sceneId)
             _this.$refs.datasetTreeRef.setCurrentKey(table.id)
             _this.treeNode()
-            this.$store.dispatch('dataset/setTable', new Date().getTime())
+            this.$emit('switchComponent', { name: '' })
           })
         } else {
           return false
@@ -454,13 +468,20 @@ export default {
             showClose: true
           })
           this.treeNode()
+          this.$emit('switchComponent', { name: '' })
         })
       }).catch(() => {
       })
     },
 
     deleteTable(data) {
-      this.$confirm(this.$t('dataset.confirm_delete'), this.$t('dataset.tips'), {
+      let confirm_delete_msg = ''
+      if (data.modelInnerType === 'union' || data.modelInnerType === 'custom') {
+        confirm_delete_msg = this.$t('dataset.confirm_delete')
+      } else {
+        confirm_delete_msg = this.$t('dataset.confirm_delete_msg')
+      }
+      this.$confirm(confirm_delete_msg, this.$t('dataset.tips'), {
         confirmButtonText: this.$t('dataset.confirm'),
         cancelButtonText: this.$t('dataset.cancel'),
         type: 'warning'
@@ -472,6 +493,7 @@ export default {
             showClose: true
           })
           this.treeNode()
+          this.$emit('switchComponent', { name: '' })
           this.$store.dispatch('dataset/setTable', new Date().getTime())
         })
       }).catch(() => {
@@ -509,6 +531,9 @@ export default {
         if (!userCache) {
           this.tData = res.data
         }
+        this.$nextTick(() => {
+          this.$refs.datasetTreeRef.filter(this.filterText)
+        })
       })
     },
 
@@ -555,6 +580,9 @@ export default {
           break
         case 'union':
           this.addData('AddUnion')
+          break
+        case 'api':
+          this.addData('AddApi')
           break
       }
     },

@@ -97,7 +97,8 @@ export default {
       timeOptions: [
 
         { value: 'hh:mm:ss', label: 'hh:mm:ss' },
-        { value: 'hh时mm分ss秒', label: 'hh时mm分ss秒' }
+        { value: 'hh时mm分ss秒', label: 'hh时mm分ss秒' },
+        { value: '', label: '无' }
       ],
       dateOptions: [
         { value: 'yyyy-MM-dd', label: 'yyyy-MM-dd' },
@@ -117,6 +118,14 @@ export default {
       'curComponent',
       'curCanvasScale'
     ])
+  },
+  watch: {
+    formatInfo: {
+      handler(newVal, oldVla) {
+        this.$store.state.styleChangeTimes++
+      },
+      deep: true
+    }
   },
   created() {
 

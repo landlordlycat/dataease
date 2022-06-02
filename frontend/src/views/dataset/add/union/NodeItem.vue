@@ -28,8 +28,8 @@
     </div>
 
     <!--选择数据集-->
-    <el-dialog v-dialogDrag :title="$t('chart.select_dataset')" :visible="selectDsDialog" :show-close="false" width="360px" class="dialog-css" destroy-on-close>
-      <dataset-group-selector-tree :fix-height="true" show-mode="union" :custom-type="customType" :mode="currentNode.currentDs.mode" @getTable="firstDs" />
+    <el-dialog v-if="selectDsDialog" v-dialogDrag :title="$t('chart.select_dataset')" :visible="selectDsDialog" :show-close="false" width="400px" class="dialog-css">
+      <dataset-group-selector-tree :fix-height="true" show-mode="union" :custom-type="customType" clear-empty-dir="true" :mode="currentNode.currentDs.mode" @getTable="firstDs" />
       <div slot="footer" class="dialog-footer">
         <el-button size="mini" @click="closeSelectDs()">{{ $t('dataset.cancel') }}</el-button>
         <el-button :disabled="!tempDs.id" type="primary" size="mini" @click="confirmSelectDs()">{{ $t('dataset.confirm') }}</el-button>
@@ -37,7 +37,7 @@
     </el-dialog>
 
     <!--编辑单个数据集字段-->
-    <el-dialog v-if="editField" v-dialogDrag :title="$t('dataset.field_select')" :visible="editField" :show-close="false" width="360px" class="dialog-css" destroy-on-close>
+    <el-dialog v-if="editField" v-dialogDrag :title="$t('dataset.field_select')" :visible="editField" :show-close="false" width="400px" class="dialog-css">
       <union-field-edit :node="currentNode" />
       <div slot="footer" class="dialog-footer">
         <el-button size="mini" @click="closeEditField()">{{ $t('dataset.cancel') }}</el-button>
@@ -79,7 +79,7 @@ export default {
         },
         allChildCount: 0
       },
-      customType: ['db', 'sql', 'excel'],
+      customType: ['db', 'sql', 'excel', 'api'],
       selectDsDialog: false,
       // 弹框临时选中的数据集
       tempDs: {},
@@ -129,7 +129,7 @@ export default {
     selectDs() {
       // 根据父级node，过滤不同的数据集
       if (this.currentNode.currentDs.mode === 1) {
-        this.customType = ['db', 'sql', 'excel']
+        this.customType = ['db', 'sql', 'excel', 'api']
       } else if (this.currentNode.currentDs.mode === 0) {
         if (this.currentNode.currentDs.modelInnerType === 'db') {
           this.customType = ['db']

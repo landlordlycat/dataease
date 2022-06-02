@@ -51,7 +51,7 @@
       </el-tooltip>
 
       <div v-if="attrShow('fontSize')" style="width: 70px;float: left;margin-top: 2px;margin-left: 2px;">
-        <el-input v-model="styleInfo.fontSize" type="number" size="mini" min="12" max="128" @change="styleChange" />
+        <el-input v-model="initFontSize" type="number" size="mini" :min="miniFontSize" :max="maxFontSize" @change="styleChange" />
       </div>
 
       <el-tooltip v-if="attrShow('fontWeight')" :content="$t('panel.fontWeight')">
@@ -122,21 +122,56 @@
           <el-color-picker ref="backgroundColorPicker" v-model="styleInfo.backgroundColor" style="margin-top: 7px;height: 0px" :predefine="predefineColors" size="mini" @change="styleChange" />
         </div>
       </div>
-
-      <div v-if="attrShow('hyperlinks')" style="width: 20px;float: left;margin-top: 2px;margin-left: 2px;">
-        <el-tooltip v-if="curComponent.hyperlinks" content="超链接">
-          <Hyperlinks :link-info="curComponent.hyperlinks" />
-        </el-tooltip>
-      </div>
       <div v-if="attrShow('videoLinks')" style="width: 20px;float: left;margin-top: 2px;margin-left: 2px;">
         <el-tooltip content="视频信息">
           <VideoLinks :link-info="curComponent.videoLinks" />
         </el-tooltip>
       </div>
 
+      <div v-if="attrShow('streamMediaLinks')" style="width: 20px;float: left;margin-top: 2px;margin-left: 2px;">
+        <el-tooltip content="流媒体信息">
+          <StreamMediaLinks :link-info="curComponent.streamMediaLinks" />
+        </el-tooltip>
+      </div>
+
+      <div v-if="attrShow('frameLinks')" style="width: 20px;float: left;margin-top: 2px;margin-left: 2px;">
+        <el-tooltip content="网页地址">
+          <FrameLinks :link-info="curComponent.frameLinks" />
+        </el-tooltip>
+      </div>
       <div v-if="attrShow('date-format')" style="width: 20px;float: left;margin-top: 2px;margin-left: 10px;">
         <el-tooltip content="日期格式">
           <date-format :format-info="curComponent.formatInfo" />
+        </el-tooltip>
+      </div>
+
+      <div v-if="attrShow('deTabStyle')" style="width: 20px;float: left;margin-top: 2px;margin-left: 10px;">
+        <el-tooltip content="tab内部样式">
+          <tab-style :style-info="styleInfo" />
+        </el-tooltip>
+      </div>
+
+      <div v-if="attrShow('titlePostion')" style="width: 20px;float: left;margin-top: 2px;margin-left: 10px;">
+        <el-tooltip content="标题位置">
+          <title-postion :show-vertical="showVertical" :style-info="styleInfo" />
+        </el-tooltip>
+      </div>
+      <!--tab 内部组件样式-->
+      <div v-if="attrTabShow('videoLinks')" style="width: 20px;float: left;margin-top: 2px;margin-left: 10px;">
+        <el-tooltip content="视频信息">
+          <VideoLinks :attr-position="'tab'" :link-info="curActiveTabInner.videoLinks" />
+        </el-tooltip>
+      </div>
+
+      <div v-if="attrTabShow('streamMediaLinks')" style="width: 20px;float: left;margin-top: 2px;margin-left: 10px;">
+        <el-tooltip content="流媒体信息">
+          <StreamMediaLinks :attr-position="'tab'" :link-info="curActiveTabInner.streamMediaLinks" />
+        </el-tooltip>
+      </div>
+
+      <div v-if="attrTabShow('frameLinks')" style="width: 20px;float: left;margin-top: 2px;margin-left: 10px;">
+        <el-tooltip content="网页地址">
+          <FrameLinks :attr-position="'tab'" :link-info="curActiveTabInner.frameLinks" />
         </el-tooltip>
       </div>
 
@@ -146,13 +181,14 @@
 
 <script>
 import { mapState } from 'vuex'
-import Hyperlinks from '@/components/canvas/components/Editor/Hyperlinks'
 import VideoLinks from '@/components/canvas/components/Editor/VideoLinks'
+import StreamMediaLinks from '@/components/canvas/components/Editor/StreamMediaLinks'
 import DateFormat from '@/components/canvas/components/Editor/DateFormat'
 import { COLOR_PANEL } from '@/views/chart/chart/chart'
+import FrameLinks from '@/components/canvas/components/Editor/FrameLinks'
 
 export default {
-  components: { Hyperlinks, DateFormat, VideoLinks },
+  components: { FrameLinks, DateFormat, VideoLinks, StreamMediaLinks },
   props: {
     scrollLeft: {
       type: Number,
@@ -168,6 +204,10 @@ export default {
       predefineColors: COLOR_PANEL,
       showMain: true,
       innerOpacity: 0,
+      mainWidthOffset: 600,
+      initFontSize: 12,
+      miniFontSize: 12,
+      maxFontSize: 128,
       textAlignOptions: [
         {
           icon: 'iconfont icon-juzuo',
@@ -221,9 +261,8 @@ export default {
       'picture-add': [
         'borderStyle',
         'borderWidth',
-        'borderRadius',
-        'opacity',
-        'borderColor'
+        'borderColor',
+        'hyperlinks'
       ],
       // 过滤组件显示的属性
       'custom': [
@@ -231,34 +270,27 @@ export default {
         'fontWeight',
         'letterSpacing',
         'color',
-        'backgroundColor'
+        'titlePostion'
       ],
       // tab组件显示的属性
       'de-tabs': [
         'borderStyle',
         'borderWidth',
-        'borderRadius',
-        'opacity',
-        'borderColor'
+        'borderColor',
+        'deTabStyle'
       ],
       // 矩形组件显示的属性
       'rect-shape': [
         'borderStyle',
         'borderWidth',
-        'borderRadius',
-        'opacity',
-        'borderColor',
-        'backgroundColor'
+        'borderColor'
       ],
       // 时间组件显示的属性
       'de-show-date': [
         'textAlign',
         'fontSize',
         'fontWeight',
-        'opacity',
-        'borderRadius',
         'color',
-        'backgroundColor',
         'date-format',
         'time_margin',
         'padding'
@@ -270,20 +302,23 @@ export default {
         'fontSize',
         'fontWeight',
         'letterSpacing',
-        'opacity',
-        'borderRadius',
         'color',
-        'backgroundColor',
         'hyperlinks'
       ],
-      // 文本组件显示的属性
       'de-video': [
         'opacity',
         'videoLinks'
+      ],
+      'de-stream-media': [
+        'opacity',
+        'streamMediaLinks'
+      ],
+      'de-frame': [
+        'opacity',
+        'frameLinks'
       ]
     }
   },
-
   computed: {
     boardDivColor() {
       const style = {
@@ -318,23 +353,42 @@ export default {
       return this.$store.state.curComponent.style
     },
     canvasWidth() {
-      let scaleWidth = 1
-      if (this.canvasStyleData.selfAdaption) {
-        scaleWidth = this.curCanvasScale.scaleWidth / 100
-      }
-      return this.canvasStyleData.width * scaleWidth
+      return this.canvasStyleData.width * this.curCanvasScale.scalePointWidth
+    },
+    showVertical() {
+      return !['textSelectGridWidget', 'numberSelectGridWidget'].includes(this.curComponent.serviceName)
     },
     ...mapState([
       'curComponent',
       'curCanvasScale',
-      'canvasStyleData'
+      'canvasStyleData',
+      'curActiveTabInner'
     ])
 
   },
   watch: {
+    styleInfo: {
+      handler(newVal, oldVla) {
+        if (newVal.fontSize) {
+          this.initFontSize = newVal.fontSize
+        }
+      },
+      deep: true
+    },
     innerOpacity: {
       handler(oldVal, newVal) {
         this.styleInfo['opacity'] = this.innerOpacity / 100
+      }
+    },
+    initFontSize: {
+      handler(newVal) {
+        if (newVal < this.miniFontSize) {
+          this.styleInfo.fontSize = this.miniFontSize
+        } else if (newVal > this.maxFontSize) {
+          this.styleInfo.fontSize = this.maxFontSize
+        } else {
+          this.styleInfo.fontSize = newVal
+        }
       }
     },
     curComponent: {
@@ -342,12 +396,14 @@ export default {
         this.$nextTick(() => {
           this.init()
         })
-        // console.log('curComponent change')
       }
     }
   },
   mounted() {
     this.init()
+    if (this.attrShow('fontSize')) {
+      this.initFontSize = this.styleInfo.fontSize
+    }
   },
 
   methods: {
@@ -355,16 +411,18 @@ export default {
       if (this.styleInfo['opacity']) {
         this.innerOpacity = this.styleInfo['opacity'] * 100
       }
-      this.mainWidthOffset = document.getElementById('main-attr').offsetWidth - 50
       if (this.curComponent.type === 'v-text') {
-        this.mainWidthOffset = 600
+        this.mainWidthOffset = 400
       } else if (this.curComponent.type === 'de-show-date') {
-        this.mainWidthOffset = 600
+        this.mainWidthOffset = 350
+      } else {
+        this.mainWidthOffset = document.getElementById('main-attr').offsetWidth - 50
       }
-      // console.log('mainWidthOffset:' + this.mainWidthOffset)
+    },
+    attrTabShow(attr) {
+      return this.curActiveTabInner && this[this.curActiveTabInner.type] && this[this.curActiveTabInner.type].includes(attr)
     },
     attrShow(attr) {
-      // console.log('attr:' + attr + this[this.curComponent.type].includes(attr))
       return this[this.curComponent.type].includes(attr)
     },
     goColor() {
@@ -378,14 +436,9 @@ export default {
     },
     getPositionX(x) {
       let ps = 0
-      if (this.canvasStyleData.selfAdaption) {
-        ps = (x * this.curCanvasScale.scaleWidth / 100) + 60
-      } else {
-        ps = x + 60
-      }
+      ps = (x * this.curCanvasScale.scalePointWidth) + 60
       // 防止toolbar超出边界
       const xGap = ps + this.mainWidthOffset - this.canvasWidth
-      // console.log('canvasWidth:' + this.canvasWidth + ';xGap:' + xGap)
       if (xGap > 0) {
         return ps - xGap
       } else {
@@ -393,14 +446,22 @@ export default {
       }
     },
     getPositionY(y) {
-      if (this.canvasStyleData.selfAdaption) {
-        return y * this.curCanvasScale.scaleHeight / 100
-      } else {
-        return y
-      }
+      return y * this.curCanvasScale.scalePointHeight
     },
     styleChange() {
       this.$store.commit('recordStyleChange')
+    },
+    goHeadFontColor() {
+      this.$refs.headFontColorPicker.handleTrigger()
+    },
+    goHeadFontActiveColor() {
+      this.$refs.headFontActiveColorPicker.handleTrigger()
+    },
+    goHeadBorderColor() {
+      this.$refs.headBorderColorPicker.handleTrigger()
+    },
+    goHeadBorderActiveColor() {
+      this.$refs.headBorderActiveColorPicker.handleTrigger()
     }
   }
 }
@@ -432,4 +493,13 @@ export default {
   ::v-deep .el-color-dropdown__link-btn {
     display: inline!important;
   }
+
+  ::v-deep input::-webkit-outer-spin-button,
+  ::v-deep input::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+  }
+  ::v-deep input[type='number'] {
+    -moz-appearance: textfield !important;
+  }
+
 </style>

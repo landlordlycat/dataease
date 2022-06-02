@@ -1,14 +1,9 @@
 package io.dataease.service.sys;
 
 import io.dataease.auth.api.dto.CurrentUserDto;
-import io.dataease.base.domain.SysUser;
-import io.dataease.base.domain.SysUserExample;
-import io.dataease.base.domain.SysUsersRolesExample;
-import io.dataease.base.domain.SysUsersRolesKey;
-import io.dataease.base.mapper.SysUserMapper;
-import io.dataease.base.mapper.SysUsersRolesMapper;
-import io.dataease.base.mapper.ext.ExtSysUserMapper;
-import io.dataease.base.mapper.ext.query.GridExample;
+import io.dataease.auth.service.ExtAuthService;
+import io.dataease.ext.ExtSysUserMapper;
+import io.dataease.ext.query.GridExample;
 import io.dataease.commons.constants.AuthConstants;
 import io.dataease.commons.utils.AuthUtils;
 import io.dataease.commons.utils.BeanUtils;
@@ -21,12 +16,19 @@ import io.dataease.controller.sys.request.SysUserStateRequest;
 import io.dataease.controller.sys.response.SysUserGridResponse;
 import io.dataease.controller.sys.response.SysUserRole;
 import io.dataease.i18n.Translator;
+import io.dataease.plugins.common.base.domain.SysUser;
+import io.dataease.plugins.common.base.domain.SysUserExample;
+import io.dataease.plugins.common.base.domain.SysUsersRolesExample;
+import io.dataease.plugins.common.base.domain.SysUsersRolesKey;
+import io.dataease.plugins.common.base.mapper.SysUserMapper;
+import io.dataease.plugins.common.base.mapper.SysUsersRolesMapper;
 import io.dataease.plugins.common.entity.XpackLdapUserEntity;
 import io.dataease.plugins.xpack.oidc.dto.SSOUserInfo;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
@@ -53,6 +55,9 @@ public class SysUserService {
 
     @Resource
     private ExtSysUserMapper extSysUserMapper;
+
+    @Autowired
+    private ExtAuthService extAuthService;
 
 
     public List<SysUserGridResponse> query(BaseGridRequest request) {
@@ -89,6 +94,7 @@ public class SysUserService {
         }
         int insert = sysUserMapper.insert(user);
         SysUser dbUser = findOne(user);
+        request.setUserId(dbUser.getUserId());
         saveUserRoles(dbUser.getUserId(), request.getRoleIds());//插入用户角色关联
         return insert;
     }
@@ -151,6 +157,11 @@ public class SysUserService {
         });
     }
 
+    public boolean validateLoginType(Integer from, Integer loginType) {
+
+        return ObjectUtils.isNotEmpty(from) && ObjectUtils.isNotEmpty(loginType) && from == loginType;
+    }
+
     public List<String> ldapUserNames() {
 
         List<String> usernames = extSysUserMapper.ldapUserNames(1);
@@ -198,6 +209,27 @@ public class SysUserService {
 
     }
 
+    /**
+     * 更新用户基本信息
+     * 只允许修改 email, nickname, phone
+     * 防止此接口被恶意利用更改不允许更改的信息，新建SysUser对象并只设置部分值
+     * @param request
+     * @return
+     */
+    @CacheEvict(value = AuthConstants.USER_CACHE_NAME, key = "'user' + #request.userId")
+    @Transactional
+    public int updatePersonBasicInfo(SysUserCreateRequest request) {
+        checkEmail(request);
+        checkNickName(request);
+        SysUser user = new SysUser();
+        long now = System.currentTimeMillis();
+        user.setUserId(request.getUserId());
+        user.setUpdateTime(now);
+        user.setEmail(request.getEmail());
+        user.setNickName(request.getNickName());
+        user.setPhone(request.getPhone());
+        return sysUserMapper.updateByPrimaryKeySelective(user);
+    }
 
     @CacheEvict(value = AuthConstants.USER_CACHE_NAME, key = "'user' + #request.userId")
     public int updateStatus(SysUserStateRequest request) {
@@ -208,7 +240,7 @@ public class SysUserService {
     }
 
     /**
-     * 修改用户密码清楚缓存
+     * 修改用户密码清除缓存
      *
      * @param request
      * @return
@@ -225,6 +257,9 @@ public class SysUserService {
         }
         SysUser sysUser = new SysUser();
         sysUser.setUserId(user.getUserId());
+        if (!request.getNewPassword().matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,30}$")) {
+            throw new RuntimeException("密码格式错误");
+        }
         sysUser.setPassword(CodingUtil.md5(request.getNewPassword()));
         return sysUserMapper.updateByPrimaryKeySelective(sysUser);
     }
@@ -268,6 +303,7 @@ public class SysUserService {
     @CacheEvict(value = AuthConstants.USER_CACHE_NAME, key = "'user' + #userId")
     @Transactional
     public int delete(Long userId) {
+        extAuthService.clearUserResource(userId);
         deleteUserRoles(userId);
         return sysUserMapper.deleteByPrimaryKey(userId);
     }

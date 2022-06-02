@@ -12,23 +12,43 @@
           <el-dropdown-item icon="el-icon-arrow-up" @click.native="upComponent">{{ $t('panel.upComponent') }}</el-dropdown-item>
           <el-dropdown-item icon="el-icon-arrow-down" @click.native="downComponent">{{ $t('panel.downComponent') }}</el-dropdown-item>
           <el-dropdown-item v-if="'view'===curComponent.type" icon="el-icon-link" @click.native="linkageSetting">{{ $t('panel.linkage_setting') }}</el-dropdown-item>
-          <el-dropdown-item v-if="'de-tabs'===curComponent.type" icon="el-icon-link" @click.native="addTab">{{ $t('panel.add_tab') }}</el-dropdown-item>
-          <el-dropdown-item  v-if="'view'===curComponent.type" icon="el-icon-connection" @click.native="linkJumpSet">跳转设置</el-dropdown-item>
+          <el-dropdown-item v-if="'de-tabs'===curComponent.type" icon="el-icon-plus" @click.native="addTab">{{ $t('panel.add_tab') }}</el-dropdown-item>
+          <el-dropdown-item v-if="'view'===curComponent.type" icon="el-icon-connection" @click.native="linkJumpSet">{{ $t('panel.setting_jump') }}</el-dropdown-item>
+          <el-dropdown-item icon="el-icon-magic-stick" @click.native="boardSet">{{ $t('panel.component_style') }}</el-dropdown-item>
+          <el-dropdown-item @click.native="hyperlinksSet">
+            <i class="icon iconfont icon-font icon-chaolianjie1" />
+            {{ $t('panel.hyperlinks') }}
+          </el-dropdown-item>
         </el-dropdown-menu>
       </el-dropdown>
     </div>
+    <!--视图详情-->
+    <el-dialog
+      :visible.sync="hyperlinksSetVisible"
+      width="400px"
+      class="dialog-css"
+      :destroy-on-close="true"
+      :append-to-body="true"
+      :show-close="true"
+    >
+      <HyperlinksDialog v-if="hyperlinksSetVisible" :link-info="curComponent.hyperlinks" @onClose="hyperlinksSetVisible = false" />
+    </el-dialog>
   </div>
+
 </template>
 
 <script>
 import { mapState } from 'vuex'
 import bus from '@/utils/bus'
 import { getViewLinkageGather } from '@/api/panel/linkage'
+import HyperlinksDialog from '@/components/canvas/components/Editor/HyperlinksDialog'
 
 export default {
+  components: { HyperlinksDialog },
   data() {
     return {
       copyData: null,
+      hyperlinksSetVisible: false,
       editFilter: [
         'view',
         'custom'
@@ -45,23 +65,11 @@ export default {
   ]),
   methods: {
     edit() {
-      // 编辑时临时保存 当前修改的画布
-      this.$store.dispatch('panel/setComponentDataTemp', JSON.stringify(this.componentData))
-      this.$store.dispatch('panel/setCanvasStyleDataTemp', JSON.stringify(this.canvasStyleData))
-      if (this.curComponent.type === 'view') {
-        this.$store.dispatch('chart/setViewId', null)
-        this.$store.dispatch('chart/setViewId', this.curComponent.propValue.viewId)
-        bus.$emit('PanelSwitchComponent', { name: 'ChartEdit', param: { 'id': this.curComponent.propValue.viewId, 'optType': 'edit' }})
-      }
       if (this.curComponent.type === 'custom') {
         bus.$emit('component-dialog-edit')
-      }
-
-      // 编辑样式组件
-
-      if (this.curComponent.type === 'v-text' || this.curComponent.type === 'rect-shape') {
+      } else if (this.curComponent.type === 'v-text' || this.curComponent.type === 'de-rich-text' || this.curComponent.type === 'rect-shape') {
         bus.$emit('component-dialog-style')
-      }
+      } else { bus.$emit('change_panel_right_draw', true) }
     },
     lock() {
       this.$store.commit('lock')
@@ -126,7 +134,6 @@ export default {
       this.$store.commit('recordSnapshot', 'bottomComponent')
     },
     linkageSetting() {
-      debugger
       // sourceViewId 也加入查询
       const targetViewIds = this.componentData.filter(item => item.type === 'view' && item.propValue && item.propValue.viewId)
         .map(item => item.propValue.viewId)
@@ -142,11 +149,19 @@ export default {
       })
     },
     addTab() {
-      bus.$emit('add-new-tab')
+      bus.$emit('add-new-tab', this.curComponent.id)
     },
     // 跳转设置
     linkJumpSet() {
       this.$emit('linkJumpSet')
+    },
+    // 设置边框
+    boardSet() {
+      this.$emit('boardSet')
+    },
+    // 超链接设置
+    hyperlinksSet() {
+      this.hyperlinksSetVisible = true
     }
   }
 }

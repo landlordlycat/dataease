@@ -145,6 +145,7 @@
           :model="groupForm"
           :rules="groupFormRules"
           @keypress.enter.native="saveGroup(groupForm)"
+          @submit.native.prevent
         >
           <el-form-item :label="$t('commons.name')" prop="name">
             <el-input v-model="groupForm.name" />
@@ -159,7 +160,7 @@
 
     <!--rename chart-->
     <el-dialog v-dialogDrag :title="$t('chart.chart')" :visible="editTable" :show-close="false" width="30%">
-      <el-form ref="tableForm" :model="tableForm" :rules="tableFormRules" @keypress.enter.native="saveTable(tableForm)">
+      <el-form ref="tableForm" :model="tableForm" :rules="tableFormRules" @submit.native.prevent @keypress.enter.native="saveTable(tableForm)">
         <el-form-item :label="$t('commons.name')" prop="name">
           <el-input v-model="tableForm.name" />
         </el-form-item>
@@ -187,16 +188,6 @@
               <el-input v-model="chartName" style="height: 34px" size="mini" />
             </el-form-item>
           </el-col>
-          <el-col v-if="optFrom==='panel'" :span="12">
-            <el-form-item :label="$t('chart.belong_group')">
-              <treeselect
-                v-model="currGroup.id"
-                :options="chartGroupTreeAvailable"
-                :normalizer="normalizer"
-                :placeholder="$t('chart.select_group')"
-              />
-            </el-form-item>
-          </el-col>
         </el-form>
       </el-row>
 
@@ -213,7 +204,7 @@
             <span style="float: right;">
               <el-select v-model="view.render" class="render-select" style="width: 70px" size="mini">
                 <el-option
-                  v-for="item in renderOptions"
+                  v-for="item in pluginRenderOptions"
                   :key="item.value"
                   :value="item.value"
                   :label="item.name"
@@ -227,13 +218,13 @@
                 v-model="view.type"
                 style="width: 100%"
               >
-                <chart-type :chart="view" style="height: 350px;" />
+                <chart-type ref="cu-chart-type" :chart="view" style="height: 350px;" />
               </el-radio-group>
             </div>
           </el-row>
         </el-row>
         <el-row class="chart-box" style="text-align: center;">
-          <svg-icon :icon-class="view.type" class="chart-icon" />
+          <svg-icon :icon-class="view.isPlugin && view.type && view.type !== 'buddle-map' ? ('/api/pluginCommon/staticInfo/' + view.type + '/svg') : view.type" class="chart-icon" />
         </el-row>
       </el-row>
 
@@ -306,6 +297,7 @@ import TableSelector from '../view/TableSelector'
 import GroupMoveSelector from '../components/TreeSelector/GroupMoveSelector'
 import ChartMoveSelector from '../components/TreeSelector/ChartMoveSelector'
 import ChartType from '@/views/chart/view/ChartType'
+import { pluginTypes } from '@/api/chart/chart'
 import {
   DEFAULT_COLOR_CASE,
   DEFAULT_LABEL,
@@ -317,8 +309,12 @@ import {
   DEFAULT_YAXIS_STYLE,
   DEFAULT_YAXIS_EXT_STYLE,
   DEFAULT_BACKGROUND_COLOR,
-  DEFAULT_SPLIT
+  DEFAULT_SPLIT,
+  DEFAULT_FUNCTION_CFG,
+  DEFAULT_THRESHOLD,
+  DEFAULT_TOTAL
 } from '../chart/chart'
+import { checkViewTitle } from '@/components/canvas/utils/utils'
 
 export default {
   name: 'Group',
@@ -425,9 +421,25 @@ export default {
         all: this.$t('commons.all'),
         folder: this.$t('commons.folder')
       },
-      currentNodeData: {},
-      currentKey: null
+      currentViewNodeData: {},
+      currentKey: null,
+      pluginRenderOptions: []
     }
+  },
+  computed: {
+    chartType() {
+      return this.view.type
+    },
+    panelInfo() {
+      return this.$store.state.panel.panelInfo
+    }
+    /* pluginRenderOptions() {
+      const plugins = localStorage.getItem('plugin-views') && JSON.parse(localStorage.getItem('plugin-views')) || []
+      const pluginOptions = plugins.filter(plugin => !this.renderOptions.some(option => option.value === plugin.render)).map(plugin => {
+        return { name: plugin.render, value: plugin.render }
+      })
+      return [...this.renderOptions, ...pluginOptions]
+    } */
   },
   watch: {
     saveStatus() {
@@ -445,8 +457,26 @@ export default {
     searchType(val) {
       this.searchPids = []
       this.$refs.chartTreeRef.filter(this.filterText)
+    },
+    chartType(val) {
+      this.view.isPlugin = val && this.$refs['cu-chart-type'] && this.$refs['cu-chart-type'].currentIsPlugin(val)
     }
 
+  },
+  created() {
+    const plugins = localStorage.getItem('plugin-views') && JSON.parse(localStorage.getItem('plugin-views'))
+    if (plugins) {
+      this.loadPluginType()
+    } else {
+      pluginTypes().then(res => {
+        const plugins = res.data
+        localStorage.setItem('plugin-views', JSON.stringify(plugins))
+        this.loadPluginType()
+      }).catch(e => {
+        localStorage.setItem('plugin-views', null)
+        this.loadPluginType()
+      })
+    }
   },
   mounted() {
     if (this.mountedInit) {
@@ -456,6 +486,13 @@ export default {
     this.getChartGroupTree()
   },
   methods: {
+    loadPluginType() {
+      const plugins = localStorage.getItem('plugin-views') && JSON.parse(localStorage.getItem('plugin-views')) || []
+      const pluginOptions = plugins.filter(plugin => !this.renderOptions.some(option => option.value === plugin.render)).map(plugin => {
+        return { name: plugin.render, value: plugin.render }
+      })
+      this.pluginRenderOptions = [...this.renderOptions, ...pluginOptions]
+    },
     clickAdd(param) {
       this.currGroup = param.data
       if (param.type === 'group') {
@@ -545,7 +582,8 @@ export default {
       this.$refs['tableForm'].validate((valid) => {
         if (valid) {
           view.title = view.name
-          post('/chart/view/save', view).then(response => {
+          view.sceneId = view.pid
+          post('/chart/view/save/' + this.panelInfo.id, view).then(response => {
             this.closeTable()
             this.$message({
               message: this.$t('dataset.save_success'),
@@ -553,7 +591,7 @@ export default {
               showClose: true
             })
             this.treeNode()
-            this.$store.dispatch('chart/setTable', null)
+            this.$emit('switchComponent', { name: '' })
           })
         } else {
           // this.$message({
@@ -579,6 +617,7 @@ export default {
             showClose: true
           })
           this.treeNode()
+          this.$emit('switchComponent', { name: '' })
         })
       }).catch(() => {
       })
@@ -671,8 +710,8 @@ export default {
     },
 
     nodeClick(data, node) {
-      this.currentNodeData = data
       if (data.modelInnerType !== 'group') {
+        this.currentViewNodeData = data
         this.$emit('switchComponent', { name: 'ChartEdit', param: data })
       }
     },
@@ -734,12 +773,22 @@ export default {
         })
         return
       }
+
+      if (checkViewTitle('new', null, this.chartName)) {
+        this.$message({
+          showClose: true,
+          message: this.$t('chart.title_repeat'),
+          type: 'error'
+        })
+        return
+      }
       const view = {}
       view.name = this.chartName
       view.title = this.chartName
       view.sceneId = this.currGroup.id
       view.tableId = this.table.id
       view.type = this.view.type
+      view.isPlugin = this.view.isPlugin
       view.render = this.view.render
       view.resultMode = 'custom'
       view.resultCount = 1000
@@ -748,7 +797,8 @@ export default {
         tableColor: DEFAULT_COLOR_CASE,
         size: DEFAULT_SIZE,
         label: DEFAULT_LABEL,
-        tooltip: DEFAULT_TOOLTIP
+        tooltip: DEFAULT_TOOLTIP,
+        totalCfg: DEFAULT_TOTAL
       })
       view.customStyle = JSON.stringify({
         text: DEFAULT_TITLE_STYLE,
@@ -756,19 +806,26 @@ export default {
         xAxis: DEFAULT_XAXIS_STYLE,
         yAxis: DEFAULT_YAXIS_STYLE,
         yAxisExt: DEFAULT_YAXIS_EXT_STYLE,
-        background: DEFAULT_BACKGROUND_COLOR,
         split: DEFAULT_SPLIT
+      })
+      view.senior = JSON.stringify({
+        functionCfg: DEFAULT_FUNCTION_CFG,
+        assistLine: [],
+        threshold: DEFAULT_THRESHOLD
       })
       view.stylePriority = 'view' // 默认样式优先级视图
       view.xaxis = JSON.stringify([])
+      view.xaxisExt = JSON.stringify([])
       view.yaxis = JSON.stringify([])
       view.yaxisExt = JSON.stringify([])
       view.extStack = JSON.stringify([])
       view.customFilter = JSON.stringify([])
       view.drillFields = JSON.stringify([])
       view.extBubble = JSON.stringify([])
+      view.viewFields = JSON.stringify([])
+      this.setChartDefaultOptions(view)
       const _this = this
-      post('/chart/view/save', view).then(response => {
+      post('/chart/view/newOne/' + this.panelInfo.id, view, true).then(response => {
         this.closeCreateChart()
         this.$store.dispatch('chart/setTableId', null)
         this.$store.dispatch('chart/setTableId', this.table.id)
@@ -780,6 +837,33 @@ export default {
           _this.treeNode()
         }
       })
+    },
+
+    setChartDefaultOptions(view) {
+      const type = view.type
+      const attr = JSON.parse(view.customAttr)
+      if (type.includes('pie')) {
+        if (view.render === 'echarts') {
+          attr.label.position = 'inside'
+        } else {
+          attr.label.position = 'inner'
+        }
+      } else if (type.includes('line')) {
+        attr.label.position = 'top'
+      } else if (type.includes('treemap')) {
+        if (view.render === 'echarts') {
+          attr.label.position = 'inside'
+        } else {
+          attr.label.position = 'middle'
+        }
+      } else {
+        if (view.render === 'echarts') {
+          attr.label.position = 'inside'
+        } else {
+          attr.label.position = 'middle'
+        }
+      }
+      view.customAttr = JSON.stringify(attr)
     },
 
     getTable(table) {
@@ -874,7 +958,7 @@ export default {
     saveMoveDs() {
       const newSceneId = this.tDs.id
       this.dsForm.sceneId = newSceneId
-      post('/chart/view/save', this.dsForm).then(res => {
+      post('/chart/view/save/' + this.panelInfo.id, this.dsForm).then(res => {
         this.closeMoveDs()
         this.expandedArray.push(newSceneId)
         this.treeNode()
@@ -933,8 +1017,8 @@ export default {
       this.searchType = searchTypeInfo
     },
     nodeTypeChange(newType) {
-      if (this.currentNodeData) {
-        this.currentNodeData.modelInnerType = newType
+      if (this.currentViewNodeData) {
+        this.currentViewNodeData.modelInnerType = newType
       }
     }
   }

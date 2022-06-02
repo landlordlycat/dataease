@@ -22,6 +22,20 @@ export function logout() {
   })
 }
 
+export function needModifyPwd() {
+  return request({
+    url: '/api/auth/useInitPwd',
+    method: 'post'
+  })
+}
+
+export function defaultPwd() {
+  return request({
+    url: '/api/auth/defaultPwd',
+    method: 'post'
+  })
+}
+
 export function validateUserName(data) {
   return request({
     url: '/api/auth/validateName',
@@ -76,5 +90,12 @@ export function getPublicKey() {
   return request({
     url: '/api/auth/getPublicKey',
     method: 'get'
+  })
+}
+
+export function defaultLoginType() {
+  return request({
+    url: '/system/defaultLoginType',
+    method: 'post'
   })
 }

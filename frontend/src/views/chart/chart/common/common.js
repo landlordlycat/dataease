@@ -178,3 +178,93 @@ export function componentStyle(chart_option, chart) {
     }
   }
 }
+
+export function seniorCfg(chart_option, chart) {
+  if (chart.senior && chart.type && (chart.type.includes('bar') || chart.type.includes('line') || chart.type.includes('mix'))) {
+    const senior = JSON.parse(chart.senior)
+    if (senior.functionCfg) {
+      if (senior.functionCfg.sliderShow) {
+        chart_option.dataZoom = [
+          {
+            type: 'inside',
+            start: parseInt(senior.functionCfg.sliderRange[0]),
+            end: parseInt(senior.functionCfg.sliderRange[1])
+          },
+          {
+            type: 'slider',
+            start: parseInt(senior.functionCfg.sliderRange[0]),
+            end: parseInt(senior.functionCfg.sliderRange[1])
+          }
+        ]
+        if (chart.type.includes('horizontal')) {
+          chart_option.dataZoom[0].yAxisIndex = [0]
+          chart_option.dataZoom[1].yAxisIndex = [0]
+          chart_option.dataZoom[1].left = '10px'
+        }
+      }
+    }
+    if (senior.assistLine && senior.assistLine.length > 0) {
+      if (chart_option.series && chart_option.series.length > 0) {
+        chart_option.series[0].markLine = {
+          symbol: 'none',
+          data: []
+        }
+        const customStyle = JSON.parse(chart.customStyle)
+        let xAxis, yAxis
+        if (customStyle.xAxis) {
+          xAxis = JSON.parse(JSON.stringify(customStyle.xAxis))
+        }
+        if (customStyle.yAxis) {
+          yAxis = JSON.parse(JSON.stringify(customStyle.yAxis))
+        }
+        senior.assistLine.forEach(ele => {
+          if (chart.type.includes('horizontal')) {
+            chart_option.series[0].markLine.data.push({
+              symbol: 'none',
+              xAxis: parseFloat(ele.value),
+              name: ele.name,
+              lineStyle: {
+                color: ele.color,
+                type: ele.lineType
+              },
+              label: {
+                show: true,
+                color: ele.color,
+                fontSize: 10,
+                position: xAxis.position === 'bottom' ? 'insideStartTop' : 'insideEndTop',
+                formatter: function(param) {
+                  return ele.name + ' : ' + param.value
+                }
+              },
+              tooltip: {
+                show: false
+              }
+            })
+          } else {
+            chart_option.series[0].markLine.data.push({
+              symbol: 'none',
+              yAxis: parseFloat(ele.value),
+              name: ele.name,
+              lineStyle: {
+                color: ele.color,
+                type: ele.lineType
+              },
+              label: {
+                show: true,
+                color: ele.color,
+                fontSize: 10,
+                position: yAxis.position === 'left' ? 'insideStartTop' : 'insideEndTop',
+                formatter: function(param) {
+                  return ele.name + ' : ' + param.value
+                }
+              },
+              tooltip: {
+                show: false
+              }
+            })
+          }
+        })
+      }
+    }
+  }
+}

@@ -1,68 +1,153 @@
 <template>
-  <div v-loading="dataLoading" class="bg">
-    <Preview v-if="!dataLoading" />
+  <div v-loading="dataLoading" class="bg" :style="bgStyle">
+    <Preview
+      v-if="!dataLoading"
+      :component-data="componentData"
+      :canvas-style-data="canvasStyleData"
+      :back-screen-shot="backScreenShot"
+      :panel-info="panelInfo"
+      @mainHeightChange="mainHeightChange"
+    />
   </div>
 </template>
 <script>
 import Preview from './Preview'
 import { uuid } from 'vue-uuid'
-import { findOne } from '@/api/panel/panel'
-import { getPanelAllLinkageInfo } from '@/api/panel/linkage'
-import { queryPanelJumpInfo, queryTargetPanelJumpInfo } from '@/api/panel/linkJump'
+import { initPanelData } from '@/api/panel/panel'
+import { queryTargetPanelJumpInfo } from '@/api/panel/linkJump'
+import { proxyInitPanelData } from '@/api/panel/shareProxy'
+import { getOuterParamsInfo } from '@/api/panel/outerParams'
+import { mapState } from 'vuex'
 
 export default {
   components: { Preview },
   data() {
     return {
-      dataLoading: false
+      dataLoading: false,
+      backScreenShot: false,
+      mainHeight: '100vh!important',
+      shareUserId: null
     }
   },
+  computed: {
+    bgStyle() {
+      if (this.backScreenShot) {
+        return { height: this.mainHeight }
+      } else {
+        return { height: '100vh!important' }
+      }
+    },
+    panelInfo() {
+      return this.$store.state.panel.panelInfo
+    },
+    ...mapState([
+      'canvasStyleData',
+      'componentData'
+    ])
+  },
+  watch: {
+    '$route.params.reportId': function() {
+      this.restore()
+    }
+  },
+
   mounted() {
     this.restore()
   },
   methods: {
+    mainHeightChange(mainHeight) {
+      this.mainHeight = mainHeight
+    },
     restore() {
-      this.dataLoading = true
-      this.panelId = this.$route.path.split('/')[2]
-      // 加载视图数据
-      findOne(this.panelId).then(response => {
-        this.dataLoading = false
-        this.$store.commit('setComponentData', this.resetID(JSON.parse(response.data.panelData)))
-        this.$store.commit('setCanvasStyle', JSON.parse(response.data.panelStyle))
-        const data = {
-          id: response.data.id,
-          name: response.data.name
-        }
-        // 刷新联动信息
-        getPanelAllLinkageInfo(this.panelId).then(rsp => {
-          this.$store.commit('setNowPanelTrackInfo', rsp.data)
-        })
-        // 刷新跳转信息
-        queryPanelJumpInfo(this.panelId).then(rsp => {
-          this.$store.commit('setNowPanelJumpInfo', rsp.data)
-        })
+      const _this = this
+      _this.dataLoading = true
+      if (!this.$route.params.reportId) {
+        return
+      }
+      const arr = this.$route.params.reportId.split('|')
+      if (!arr || arr.length === 0) {
+        return
+      }
+      _this.panelId = arr[0]
 
-        // 如果含有跳转参数 进行触发
-        const tempParam = localStorage.getItem('jumpInfoParam')
-        if (tempParam) {
-          localStorage.removeItem('jumpInfoParam')
-          const jumpParam = JSON.parse(tempParam)
-          const jumpRequestParam = {
-            sourcePanelId: jumpParam.sourcePanelId,
-            sourceViewId: jumpParam.sourceViewId,
-            sourceFieldId: jumpParam.sourceFieldId,
-            targetPanelId: this.panelId
+      if (arr.length > 1) {
+        this.shareUserId = arr[1]
+      }
+
+      if (_this.$route.params.backScreenShot !== undefined) {
+        _this.backScreenShot = _this.$route.params.backScreenShot
+      }
+      // 加载视图数据
+      if (this.shareUserId !== null) {
+        const param = { userId: this.shareUserId }
+        proxyInitPanelData(this.panelId, param, () => {
+          this.initCallBack()
+        })
+      } else {
+        initPanelData(this.panelId, () => {
+          this.initCallBack()
+        })
+      }
+    },
+
+    initCallBack() {
+      this.dataLoading = true
+      let loadingCount = 0
+      // 如果含有跳转参数 进行触发
+      const tempParam = localStorage.getItem('jumpInfoParam')
+      // 添加外部参数
+      const attachParamsEncode = this.$route.query.attachParams
+      tempParam && loadingCount++
+      attachParamsEncode && loadingCount++
+
+      if (attachParamsEncode) {
+        try {
+          const Base64 = require('js-base64').Base64
+          const attachParam = JSON.parse(Base64.decode(attachParamsEncode))
+          getOuterParamsInfo(this.panelId).then(rsp => {
+            if (--loadingCount === 0) {
+              this.dataLoading = false
+            }
+            this.$store.commit('setNowPanelOuterParamsInfo', rsp.data)
+            this.$store.commit('addOuterParamsFilter', attachParam)
+          })
+        } catch (e) {
+          if (--loadingCount === 0) {
+            this.dataLoading = false
           }
-          this.dataLoading = true
+          this.$message({
+            message: this.$t('panel.outer_param_decode_error'),
+            type: 'error'
+          })
+        }
+      }
+      if (tempParam) {
+        localStorage.removeItem('jumpInfoParam')
+        const jumpParam = JSON.parse(tempParam)
+        const jumpRequestParam = {
+          sourcePanelId: jumpParam.sourcePanelId,
+          sourceViewId: jumpParam.sourceViewId,
+          sourceFieldId: jumpParam.sourceFieldId,
+          targetPanelId: this.panelId
+        }
+        try {
           // 刷新跳转目标仪表板联动信息
           queryTargetPanelJumpInfo(jumpRequestParam).then(rsp => {
-            this.dataLoading = false
+            if (--loadingCount === 0) {
+              this.dataLoading = false
+            }
             this.$store.commit('setNowTargetPanelJumpInfo', rsp.data)
             this.$store.commit('addViewTrackFilter', jumpParam)
           })
+        } catch (e) {
+          if (--loadingCount === 0) {
+            this.dataLoading = false
+          }
         }
-        this.$store.dispatch('panel/setPanelInfo', data)
-      })
+      }
+      if (loadingCount === 0) {
+        this.dataLoading = false
+      }
     },
     resetID(data) {
       if (data) {
@@ -80,8 +165,8 @@ export default {
   .bg {
     width: 100%;
     height: 100vh!important;
-    min-width: 800px;
-    min-height: 600px;
+    min-width: 200px;
+    min-height: 300px;
     background-color: #f7f8fa;
   }
 </style>

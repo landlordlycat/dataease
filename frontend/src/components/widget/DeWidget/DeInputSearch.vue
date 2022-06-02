@@ -1,10 +1,12 @@
 <template>
 
   <el-input
-    v-if="options!== null && options.attrs!==null"
+    v-if="element.options!== null && element.options.attrs!==null"
     v-model="value"
     resize="vertical"
-    :placeholder="$t(options.attrs.placeholder)"
+    :placeholder="$t(element.options.attrs.placeholder)"
+    :size="size"
+    @input="valueChange"
     @keypress.enter.native="search"
     @dblclick="setEdit"
   >
@@ -15,6 +17,7 @@
 </template>
 
 <script>
+import bus from '@/utils/bus'
 export default {
 
   props: {
@@ -25,42 +28,84 @@ export default {
     inDraw: {
       type: Boolean,
       default: true
-    }
+    },
+    size: String
   },
   data() {
     return {
-      options: null,
       operator: 'like',
       value: null,
       canEdit: false
     }
   },
-  created() {
-    this.options = this.element.options
-    if (this.inDraw && this.options.value && this.options.value.length > 0) {
-      this.value = this.options.value[0]
+  computed: {
+    defaultValueStr() {
+      if (!this.element || !this.element.options || !this.element.options.value) return ''
+      return this.element.options.value.toString()
+    },
+    viewIds() {
+      if (!this.element || !this.element.options || !this.element.options.attrs.viewIds) return ''
+      return this.element.options.attrs.viewIds.toString()
+    },
+    manualModify() {
+      return !!this.element.options.manualModify
     }
+  },
+  watch: {
+    'viewIds': function(value, old) {
+      if (typeof value === 'undefined' || value === old) return
+      this.setCondition()
+    },
+    'defaultValueStr': function(value, old) {
+      if (value === old) return
+      this.value = this.fillValueDerfault()
+      this.search()
+    }
+  },
+  created() {
+    if (this.element.options.value) {
+      this.value = this.fillValueDerfault()
+      this.search()
+    }
+  },
+  mounted() {
+    bus.$on('reset-default-value', id => {
+      if (this.inDraw && this.manualModify && this.element.id === id) {
+        this.value = this.fillValueDerfault()
+        this.search()
+      }
+    })
   },
   methods: {
     search() {
-    //   this.options.value && this.setCondition()
-      this.options.value = []
-      if (this.inDraw && this.value) {
-        this.options.value = [this.value]
+      if (!this.inDraw) {
+        this.element.options.value = this.value
       }
-
       this.setCondition()
     },
     setCondition() {
       const param = {
         component: this.element,
-        value: !this.options.value ? [] : Array.isArray(this.options.value) ? this.options.value : [this.options.value],
+        value: !this.value ? [] : Array.isArray(this.value) ? this.value : [this.value],
         operator: this.operator
       }
       this.inDraw && this.$store.commit('addViewFilter', param)
     },
     setEdit() {
       this.canEdit = true
+    },
+    valueChange(val) {
+      if (!this.inDraw) {
+        this.element.options.value = val
+        this.element.options.manualModify = false
+      } else {
+        this.element.options.manualModify = true
+      }
+    },
+    fillValueDerfault() {
+      const defaultV = this.element.options.value === null ? '' : this.element.options.value.toString()
+      if (defaultV === null || typeof defaultV === 'undefined' || defaultV === '' || defaultV === '[object Object]') return null
+      return defaultV.split(',')[0]
     }
   }
 }

@@ -1,21 +1,20 @@
 import axios from 'axios'
 import store from '@/store'
-import {$alert, $error} from './message'
-import {getToken, getIdToken} from '@/utils/auth'
+import { $alert, $error } from './message'
+import { getToken, getIdToken } from '@/utils/auth'
 import Config from '@/settings'
 import i18n from '@/lang'
-import {tryShowLoading, tryHideLoading} from './loading'
-import {getLinkToken, setLinkToken} from '@/utils/auth'
+import { tryShowLoading, tryHideLoading } from './loading'
+import { getLinkToken, setLinkToken } from '@/utils/auth'
 
 const TokenKey = Config.TokenKey
 const RefreshTokenKey = Config.RefreshTokenKey
 const LinkTokenKey = Config.LinkTokenKey
 import Cookies from 'js-cookie'
 
-
 const getTimeOut = () => {
   let time = 10
-  const url = '/system/requestTimeOut'
+  const url = process.env.VUE_APP_BASE_API + 'system/requestTimeOut'
   const xhr = new XMLHttpRequest()
   xhr.onreadystatechange = () => {
     if (xhr.readyState === 4 && xhr.status === 200) {

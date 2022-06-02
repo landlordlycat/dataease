@@ -1,13 +1,15 @@
 <template>
   <component
     :is="mode"
+    :ref="refId"
+    :obj="obj"
     v-bind="$attrs"
     v-on="$listeners"
   />
 </template>
 
 <script>
-
+import { uuid } from 'vue-uuid'
 import { get } from '@/api/system/dynamic'
 
 export default {
@@ -18,12 +20,17 @@ export default {
     url: {
       type: String,
       default: ''
+    },
+    obj: {
+      type: Object,
+      default: () => {}
     }
   },
   data() {
     return {
       resData: '',
-      mode: ''
+      mode: '',
+      refId: null
     }
   },
   watch: {
@@ -54,8 +61,17 @@ export default {
       }
     }
   },
+  created() {
+    this.refId = uuid.v1
+  },
   methods: {
-
+    /* chartResize() {
+      this.$refs[this.refId] && this.$refs[this.refId].chartResize && this.$refs[this.refId].chartResize()
+    }, */
+    callPluginInner(param) {
+      const { methodName, methodParam } = param
+      return this.$refs[this.refId] && this.$refs[this.refId][methodName] && this.$refs[this.refId][methodName](methodParam)
+    }
   }
 }
 </script>

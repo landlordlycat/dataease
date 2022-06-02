@@ -1,9 +1,11 @@
 import { hexColorToRGBA } from '@/views/chart/chart/util'
-import { componentStyle } from '../common/common'
+import { componentStyle, seniorCfg } from '../common/common'
 
 let bubbleArray = []
+let terminalType = 'pc'
 
-export function baseScatterOption(chart_option, chart) {
+export function baseScatterOption(chart_option, chart, terminal = 'pc') {
+  terminalType = terminal
   // 处理shape attr
   let customAttr = {}
   if (chart.customAttr) {
@@ -28,7 +30,7 @@ export function baseScatterOption(chart_option, chart) {
       const y = chart.data.series[i]
       // color
       y.itemStyle = {
-        color: hexColorToRGBA(customAttr.color.colors[i % 9], customAttr.color.alpha)
+        color: hexColorToRGBA(customAttr.color.colors[i % customAttr.color.colors.length], customAttr.color.alpha)
       }
       // size
       if (customAttr.size) {
@@ -55,11 +57,12 @@ export function baseScatterOption(chart_option, chart) {
   }
   // console.log(chart_option);
   componentStyle(chart_option, chart)
+  seniorCfg(chart_option, chart)
   return chart_option
 }
 
 const funcSize = function(data) {
-  const k = 80
+  const k = terminalType === 'pc' ? 80 : 30
   const max = Math.max(...bubbleArray)
   return (data[2] / max) * k
 }

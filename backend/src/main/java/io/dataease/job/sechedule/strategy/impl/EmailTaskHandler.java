@@ -1,12 +1,13 @@
 package io.dataease.job.sechedule.strategy.impl;
 
-
 import io.dataease.auth.entity.SysUserEntity;
 import io.dataease.auth.entity.TokenInfo;
 import io.dataease.auth.service.AuthUserService;
 import io.dataease.auth.service.impl.AuthUserServiceImpl;
 import io.dataease.auth.util.JWTUtils;
+import io.dataease.ext.ExtTaskMapper;
 import io.dataease.commons.utils.CommonBeanFactory;
+import io.dataease.commons.utils.CronUtils;
 import io.dataease.commons.utils.LogUtil;
 import io.dataease.commons.utils.ServletUtils;
 import io.dataease.job.sechedule.ScheduleManager;
@@ -14,6 +15,7 @@ import io.dataease.job.sechedule.strategy.TaskHandler;
 import io.dataease.plugins.common.entity.GlobalTaskEntity;
 import io.dataease.plugins.common.entity.GlobalTaskInstance;
 import io.dataease.plugins.config.SpringContextUtil;
+import io.dataease.plugins.xpack.email.dto.request.XpackEmailTaskRequest;
 import io.dataease.plugins.xpack.email.dto.request.XpackPixelEntity;
 import io.dataease.plugins.xpack.email.dto.response.XpackEmailTemplateDTO;
 import io.dataease.plugins.xpack.email.service.EmailXpackService;
@@ -26,10 +28,8 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 
-
 @Service
 public class EmailTaskHandler extends TaskHandler implements Job {
-
 
     private static final Integer RUNING = 0;
     private static final Integer SUCCESS = 1;
@@ -37,7 +37,6 @@ public class EmailTaskHandler extends TaskHandler implements Job {
 
     @Resource
     private AuthUserServiceImpl authUserServiceImpl;
-
 
     @Override
     protected JobDataMap jobDataMap(GlobalTaskEntity taskEntity) {
@@ -51,16 +50,32 @@ public class EmailTaskHandler extends TaskHandler implements Job {
         return jobDataMap;
     }
 
+    public EmailTaskHandler proxy() {
+        return CommonBeanFactory.getBean(EmailTaskHandler.class);
+    }
+
+    @Override
+    protected Boolean taskIsRunning(Long taskId) {
+        ExtTaskMapper extTaskMapper = CommonBeanFactory.getBean(ExtTaskMapper.class);
+        return extTaskMapper.runningCount(taskId) > 0;
+    }
+
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         // 插件没有加载 空转
-        if (!CommonBeanFactory.getBean(AuthUserService.class).pluginLoaded()) return;
+        if (!CommonBeanFactory.getBean(AuthUserService.class).pluginLoaded())
+            return;
 
         JobDataMap jobDataMap = context.getJobDetail().getJobDataMap();
         GlobalTaskEntity taskEntity = (GlobalTaskEntity) jobDataMap.get("taskEntity");
-        if (taskExpire(taskEntity.getEndTime())) {
-            ScheduleManager scheduleManager = SpringContextUtil.getBean(ScheduleManager.class);
+        ScheduleManager scheduleManager = SpringContextUtil.getBean(ScheduleManager.class);
+        if (CronUtils.taskExpire(taskEntity.getEndTime())) {
             removeTask(scheduleManager, taskEntity);
+            return;
+        }
+        if (taskIsRunning(taskEntity.getTaskId())) {
+            LogUtil.info("Skip synchronization task: {} ,due to task status is {}",
+                    taskEntity.getTaskId(), "running");
             return;
         }
 
@@ -70,13 +85,15 @@ public class EmailTaskHandler extends TaskHandler implements Job {
 
         XpackEmailTemplateDTO emailTemplate = (XpackEmailTemplateDTO) jobDataMap.get("emailTemplate");
         SysUserEntity creator = (SysUserEntity) jobDataMap.get("creator");
+        LogUtil.info("start execute send panel report task...");
         proxy().sendReport(taskInstance, emailTemplate, creator);
 
     }
 
-
-    public EmailTaskHandler proxy() {
-        return CommonBeanFactory.getBean(EmailTaskHandler.class);
+    @Override
+    public void resetRunningInstance(Long taskId) {
+        ExtTaskMapper extTaskMapper = CommonBeanFactory.getBean(ExtTaskMapper.class);
+        extTaskMapper.resetRunnings(taskId);
     }
 
     public Long saveInstance(GlobalTaskInstance taskInstance) {
@@ -106,21 +123,35 @@ public class EmailTaskHandler extends TaskHandler implements Job {
         emailXpackService.saveInstance(taskInstance);
     }
 
-
-    @Async
-    public void sendReport(GlobalTaskInstance taskInstance, XpackEmailTemplateDTO emailTemplateDTO, SysUserEntity user) {
+    @Async("priorityExecutor")
+    public void sendReport(GlobalTaskInstance taskInstance, XpackEmailTemplateDTO emailTemplateDTO,
+            SysUserEntity user) {
         EmailXpackService emailXpackService = SpringContextUtil.getBean(EmailXpackService.class);
         try {
-            byte[] bytes = emailXpackService.printData(panelUrl(emailTemplateDTO.getPanelId()), tokenByUser(user), buildPixel(emailTemplateDTO));
+            XpackEmailTaskRequest taskForm = emailXpackService.taskForm(taskInstance.getTaskId());
+            if (ObjectUtils.isEmpty(taskForm) || CronUtils.taskExpire(taskForm.getEndTime())) {
+                return;
+            }
+            String panelId = emailTemplateDTO.getPanelId();
+            String url = panelUrl(panelId);
+            String token = tokenByUser(user);
+            XpackPixelEntity xpackPixelEntity = buildPixel(emailTemplateDTO);
+            LogUtil.info("url is " + url);
+            LogUtil.info("token is " + token);
+            byte[] bytes = emailXpackService.printData(url, token, xpackPixelEntity);
+            LogUtil.info("picture of " + url + " is finished");
             // 下面继续执行发送邮件的
             String recipients = emailTemplateDTO.getRecipients();
             byte[] content = emailTemplateDTO.getContent();
             EmailService emailService = SpringContextUtil.getBean(EmailService.class);
+
             String contentStr = "";
             if (ObjectUtils.isNotEmpty(content)) {
                 contentStr = new String(content, "UTF-8");
             }
-            emailService.sendWithImage(recipients, emailTemplateDTO.getTitle(), contentStr, bytes);
+            emailService.sendWithImage(recipients, emailTemplateDTO.getTitle(),
+                    contentStr, bytes);
+
             success(taskInstance);
         } catch (Exception e) {
             error(taskInstance, e);
@@ -131,12 +162,14 @@ public class EmailTaskHandler extends TaskHandler implements Job {
     private XpackPixelEntity buildPixel(XpackEmailTemplateDTO emailTemplateDTO) {
         XpackPixelEntity pixelEntity = new XpackPixelEntity();
         String pixelStr = emailTemplateDTO.getPixel();
-        if (StringUtils.isBlank(pixelStr)) return null;
+        if (StringUtils.isBlank(pixelStr))
+            return null;
         String[] arr = pixelStr.split("\\*");
-        if (arr.length != 2) return null;
+        if (arr.length != 2)
+            return null;
         try {
-            int x = Integer.parseInt(arr[0]);
-            int y = Integer.parseInt(arr[1]);
+            int x = Integer.parseInt(arr[0].trim());
+            int y = Integer.parseInt(arr[1].trim());
             pixelEntity.setX(String.valueOf(x));
             pixelEntity.setY(String.valueOf(y));
             return pixelEntity;
@@ -144,7 +177,6 @@ public class EmailTaskHandler extends TaskHandler implements Job {
             return null;
         }
     }
-
 
     private String tokenByUser(SysUserEntity user) {
         TokenInfo tokenInfo = TokenInfo.builder().userId(user.getUserId()).username(user.getUsername()).build();
@@ -155,7 +187,7 @@ public class EmailTaskHandler extends TaskHandler implements Job {
 
     private String panelUrl(String panelId) {
         String domain = ServletUtils.domain();
-        return domain + "/#/preview/" + panelId;
+        return domain + "/#/previewScreenShot/" + panelId + "/true";
     }
 
 }

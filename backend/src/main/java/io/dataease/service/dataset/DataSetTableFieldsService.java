@@ -1,9 +1,11 @@
 package io.dataease.service.dataset;
 
-import io.dataease.base.domain.DatasetTableField;
-import io.dataease.base.domain.DatasetTableFieldExample;
-import io.dataease.base.mapper.DatasetTableFieldMapper;
-import io.dataease.commons.utils.DorisTableUtils;
+import io.dataease.commons.exception.DEException;
+import io.dataease.commons.utils.TableUtils;
+import io.dataease.i18n.Translator;
+import io.dataease.plugins.common.base.domain.DatasetTableField;
+import io.dataease.plugins.common.base.domain.DatasetTableFieldExample;
+import io.dataease.plugins.common.base.mapper.DatasetTableFieldMapper;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -34,7 +36,7 @@ public class DataSetTableFieldsService {
             datasetTableField.setId(UUID.randomUUID().toString());
             // 若dataeasename为空，则用MD5(id)作为dataeasename
             if (StringUtils.isEmpty(datasetTableField.getDataeaseName())) {
-                datasetTableField.setDataeaseName(DorisTableUtils.columnName(datasetTableField.getId()));
+                datasetTableField.setDataeaseName(TableUtils.columnName(datasetTableField.getId()));
             }
             if (ObjectUtils.isEmpty(datasetTableField.getLastSyncTime())) {
                 datasetTableField.setLastSyncTime(System.currentTimeMillis());
@@ -44,6 +46,21 @@ public class DataSetTableFieldsService {
             datasetTableFieldMapper.updateByPrimaryKeySelective(datasetTableField);
         }
         return datasetTableField;
+    }
+
+    public void checkFieldName(DatasetTableField datasetTableField) {
+        if (StringUtils.isNotEmpty(datasetTableField.getName()) && StringUtils.isNotEmpty(datasetTableField.getTableId())) {
+            DatasetTableFieldExample datasetTableFieldExample = new DatasetTableFieldExample();
+            DatasetTableFieldExample.Criteria criteria = datasetTableFieldExample.createCriteria();
+            criteria.andNameEqualTo(datasetTableField.getName()).andTableIdEqualTo(datasetTableField.getTableId());
+            if (StringUtils.isNotEmpty(datasetTableField.getId())) {
+                criteria.andIdNotEqualTo(datasetTableField.getId());
+            }
+            List<DatasetTableField> datasetTableFields = datasetTableFieldMapper.selectByExample(datasetTableFieldExample);
+            if (CollectionUtils.isNotEmpty(datasetTableFields)) {
+                DEException.throwException(Translator.get("i18n_field_name_repeat"));
+            }
+        }
     }
 
     public List<DatasetTableField> list(DatasetTableField datasetTableField) {
@@ -72,6 +89,10 @@ public class DataSetTableFieldsService {
         DatasetTableFieldExample datasetTableFieldExample = new DatasetTableFieldExample();
         datasetTableFieldExample.createCriteria().andIdIn(ids);
         return datasetTableFieldMapper.selectByExample(datasetTableFieldExample);
+    }
+
+    public DatasetTableField selectByPrimaryKey(String id) {
+        return datasetTableFieldMapper.selectByPrimaryKey(id);
     }
 
     public List<DatasetTableField> getListByIdsEach(List<String> ids) {
