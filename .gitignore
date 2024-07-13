@@ -40,6 +40,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Editor directories and files
+.lh
 .idea
 .vscode
 *.suo
@@ -51,6 +52,16 @@ pnpm-debug.log*
 *.classpath
 *.project
 .settings/
+.lh
 
+
+### Spring flatten ###
+.flattened-pom.xml
 
 package-lock.json
+/core/core-frontend/
+/core/core-backend/
+/sdk/common/
+/sdk/distributed/
+/sdk/api/
+/de-xpack/
